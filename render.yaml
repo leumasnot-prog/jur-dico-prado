@@ -5,7 +5,10 @@ services:
     name: painel-juridico-pradopolis
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    # Contexto na RAIZ do repo, não em backend/: o Dockerfile copia a
+    # biblioteca do MCP (pyproject.toml, src/) de fora de backend/, e o Docker
+    # recusa copiar de fora do contexto de build.
+    dockerContext: .
     healthCheckPath: /health
     envVars:
       # Cole a connection string do Neon. Precisa de ?sslmode=require
@@ -25,3 +28,16 @@ services:
         value: "true"
       - key: VARREDURA_HORA
         value: "06:00"
+      # PAINEL_BASE_URL precisa ser a URL pública que o Render atribuir a este
+      # serviço (ex.: https://painel-juridico-pradopolis.onrender.com) — é
+      # dela que saem os links das mensagens do Hermes.
+      - key: PAINEL_BASE_URL
+        sync: false
+      # Sem estas três, o serviço sobe igual e o Hermes fica mudo — não são
+      # obrigatórias para o primeiro deploy. Ver backend/DEPLOY.md, §6.
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID_GRUPO
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        generateValue: true
