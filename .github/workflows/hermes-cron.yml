@@ -34,7 +34,18 @@ jobs:
 
       - name: Chamar o serviço (acorda o Render se estiver dormindo)
         run: |
-          curl --fail --silent --show-error \
+          # --fail-with-body, e nao --fail: o "--fail" puro DESCARTA o corpo da
+          # resposta, que e justamente onde o servico explica o que quebrou.
+          # Com ele, uma falha vira um codigo HTTP sem causa no log da Action.
+          curl --fail-with-body --silent --show-error \
             --max-time 100 --retry 3 --retry-delay 10 --retry-all-errors \
             -X POST "${{ secrets.PAINEL_BASE_URL }}${{ steps.rota.outputs.caminho }}" \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"
+
+      - name: Diagnosticar quando falha
+        if: failure()
+        run: |
+          echo "A tarefa falhou. Conferindo o que o serviço alcança:"
+          curl --silent --show-error --max-time 60 \
+            "${{ secrets.PAINEL_BASE_URL }}/cron/diagnostico" \
             -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"

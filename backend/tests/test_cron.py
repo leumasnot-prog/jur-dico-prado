@@ -103,3 +103,57 @@ async def test_chamar_hermes_sem_ninguem_configurado_nao_quebra(cliente, sessao,
     r = await cliente.post("/cron/hermes", headers=CABECALHO)
     assert r.status_code == 200
     assert r.json() == {"resumo_diario_enviado": False, "alertas_enviados": 0}
+
+
+async def test_falha_na_varredura_explica_a_causa(cliente, cron_config, monkeypatch):
+    """Um 500 pelado num endpoint de cron e inutil: quem le e o log de uma
+    GitHub Action, sem acesso ao dashboard do host. Aconteceu em producao — o
+    primeiro disparo devolveu 500 e nao houve como saber por que."""
+    async def _explode(*a, **kw):
+        raise ConnectionError("nao foi possivel alcancar o DJEN")
+
+    monkeypatch.setattr("app.services.acervo.varrer_e_persistir", _explode)
+    r = await cliente.post("/cron/varredura", headers=CABECALHO)
+    assert r.status_code == 502
+    assert "ConnectionError" in r.json()["detail"]
+    assert "DJEN" in r.json()["detail"]
+
+
+async def test_falha_fica_na_trilha_de_auditoria(cliente, sessao, cron_config, monkeypatch):
+    async def _explode(*a, **kw):
+        raise ConnectionError("rede fora")
+
+    monkeypatch.setattr("app.services.acervo.varrer_e_persistir", _explode)
+    await cliente.post("/cron/varredura", headers=CABECALHO)
+
+    aud = (await sessao.execute(
+        select(Auditoria).where(Auditoria.acao == "varredura_cron_falhou"))).scalars().all()
+    assert len(aud) == 1
+    assert "ConnectionError" in aud[0].detalhe["erro"]
+
+
+async def test_diagnostico_diz_o_que_alcanca(cliente, cron_config, monkeypatch):
+    import httpx
+
+    # Derruba SO a chamada externa. O proprio `cliente` de teste e um
+    # httpx.AsyncClient: substituir o metodo inteiro quebraria a requisicao do
+    # teste antes de ela chegar ao servico.
+    original = httpx.AsyncClient.get
+
+    async def _so_a_externa(self, url, **kw):
+        if str(url).startswith("https://"):
+            raise OSError("host inalcancavel")
+        return await original(self, url, **kw)
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", _so_a_externa)
+
+    r = await cliente.get("/cron/diagnostico", headers=CABECALHO)
+    assert r.status_code == 200
+    corpo = r.json()
+    assert corpo["banco"] == "ok"          # o banco de teste responde
+    assert "OSError" in corpo["djen"]      # o DJEN, nao
+    assert corpo["telegram"] == "sem token configurado"
+
+
+async def test_diagnostico_exige_segredo(cliente, cron_config):
+    assert (await cliente.get("/cron/diagnostico")).status_code == 403
