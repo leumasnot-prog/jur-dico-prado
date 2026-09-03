@@ -26,6 +26,10 @@ graph LR
 só começa com a Task 2 fechada, porque sem banco o bot não sabe o que já avisou e vira
 spam.
 
+**Execuções concluídas:** [Task 1](OBSERVACOES-TASK-1.md) ·
+[Task 2](OBSERVACOES-TASK-2.md) · [Task 3](OBSERVACOES-TASK-3.md) — cada uma com o que
+foi construído, o que quebrou e o que ficou pendente.
+
 **Metodologia:** cada task é dividida em ciclos fechados. Um ciclo entrega algo
 utilizável, passa por verificação explícita no navegador ou em teste, e só então o
 próximo começa. Ciclo que falha na verificação repete antes de avançar.

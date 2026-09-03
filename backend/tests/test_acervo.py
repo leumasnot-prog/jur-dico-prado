@@ -35,6 +35,11 @@ def djen_falso(monkeypatch):
     """Substitui só a rede. O parsing, o cálculo e a persistência são os reais."""
     def _instalar(comunicacoes: list[dict]):
         class _Cliente:
+            # Espelha a assinatura real: o servico constroi o cliente com
+            # timeout proprio, e um duble que ignora isso deixa passar erro.
+            def __init__(self, base_url=None, timeout=None):
+                self.timeout = timeout
+
             async def buscar(self, **kw):
                 return comunicacoes
         monkeypatch.setattr("mcp_juridico_brasil.comunica.client.ComunicaClient", _Cliente)

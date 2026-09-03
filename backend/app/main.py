@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse
 
 from app.core.config import settings
 from app.core.db import reset_engine
+from app.hermes.webhook import router as hermes_router
 from app.routers.acervo import router as acervo_router
 from app.routers.auth import router as auth_router
 from app.routers.relatorios import router as relatorios_router
@@ -45,7 +46,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_origin],
-    allow_methods=["GET", "POST", "PATCH"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -53,12 +54,14 @@ app.add_middleware(
 @app.get("/health", tags=["infra"], summary="Healthcheck")
 async def health() -> dict[str, object]:
     return {"status": "ok", "varredura_ativa": settings.varredura_ativa,
-            "banco_configurado": bool(settings.database_url)}
+            "banco_configurado": bool(settings.database_url),
+            "hermes_configurado": settings.hermes_configurado}
 
 
 app.include_router(auth_router)
 app.include_router(acervo_router)
 app.include_router(relatorios_router)
+app.include_router(hermes_router)
 
 # O painel é servido pelo próprio serviço: um processo só para publicar, e a
 # API na mesma origem — sem CORS e sem token atravessando domínio.

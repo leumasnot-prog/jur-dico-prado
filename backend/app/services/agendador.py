@@ -51,6 +51,9 @@ async def executar_varredura_automatica() -> None:
                 await registrar(sessao, acao="varredura_automatica",
                                 detalhe={**resultado, "tentativa": tentativa})
                 await sessao.commit()
+                # Publicacao nova com prazo curto nao espera o proximo intervalo
+                # do Hermes: a varredura das 06:00 e justamente quando ela chega.
+                await _avisar_hermes(sessao)
                 return
             except Exception as exc:
                 logger.warning("varredura_automatica_falhou", tentativa=tentativa,
@@ -65,21 +68,52 @@ async def executar_varredura_automatica() -> None:
     logger.error("varredura_automatica_desistiu", tentativas=TENTATIVAS)
 
 
+async def _avisar_hermes(sessao) -> None:
+    """Dispara os alertas logo apos a varredura. Falha aqui nao invalida a varredura."""
+    if not (settings.hermes_ativo and settings.hermes_configurado):
+        return
+    from app.hermes.agendador import varrer_alertas
+
+    try:
+        enviados = await varrer_alertas(sessao)
+        logger.info("hermes_apos_varredura", enviados=enviados)
+    except Exception as exc:
+        logger.error("hermes_apos_varredura_falhou", erro=type(exc).__name__)
+
+
 def iniciar() -> AsyncIOScheduler | None:
+    """Monta o agendador com o que estiver ligado.
+
+    VARREDURA_ATIVA e HERMES_ATIVO sao chaves INDEPENDENTES. Desligar a varredura
+    numa segunda instancia (para nao varrer o DJEN duas vezes) nao pode matar os
+    alertas junto — o Hermes so le o banco, e rodar os dois e legitimo.
+    """
     global _scheduler
-    if not settings.varredura_ativa:
-        logger.info("agendador_desativado")
-        return None
-    hora, _, minuto = settings.varredura_hora.partition(":")
+    from app.hermes import agendador as hermes
+
     _scheduler = AsyncIOScheduler(timezone=FUSO_FORO)
-    _scheduler.add_job(
-        executar_varredura_automatica,
-        CronTrigger(day_of_week="mon-fri", hour=int(hora), minute=int(minuto or 0),
-                    timezone=FUSO_FORO),
-        id="varredura_djen", replace_existing=True, misfire_grace_time=3600,
-    )
+
+    if settings.varredura_ativa:
+        hora, _, minuto = settings.varredura_hora.partition(":")
+        _scheduler.add_job(
+            executar_varredura_automatica,
+            CronTrigger(day_of_week="mon-fri", hour=int(hora), minute=int(minuto or 0),
+                        timezone=FUSO_FORO),
+            id="varredura_djen", replace_existing=True, misfire_grace_time=3600,
+        )
+    else:
+        logger.info("varredura_desativada")
+
+    hermes.registrar(_scheduler)
+
+    if not _scheduler.get_jobs():
+        logger.info("agendador_sem_tarefas")
+        _scheduler = None
+        return None
+
     _scheduler.start()
-    logger.info("agendador_iniciado", horario=settings.varredura_hora, fuso="America/Sao_Paulo")
+    logger.info("agendador_iniciado", tarefas=[j.id for j in _scheduler.get_jobs()],
+                fuso="America/Sao_Paulo")
     return _scheduler
 
 

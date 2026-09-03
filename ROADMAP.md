@@ -47,7 +47,23 @@ Estes blocos não dependem de contratação, mensalidade ou chaves pagas. Funcio
 | **Console de testes** | `http://127.0.0.1:8777` | Servidor Starlette local | ✅ Operacional |
 | **Painel visual** | `painel-pradopolis-local.html` | Interface do Jurídico Pradópolis | ✅ Operacional |
 
-**Total de 286 testes passando, ruff e mypy --strict limpos.**
+**Total de 357 testes passando (297 no MCP, 60 no backend), ruff e mypy limpos.**
+
+### 🟢 Hermes — avisos no Telegram (Task 3, concluída em 03/09/2026)
+
+| Item | Onde | Status |
+|---|---|---|
+| Resumo diário 08:00 no grupo | `backend/app/hermes/agendador.py` | ✅ Verificado |
+| Alerta crítico no privado | idem | ✅ Verificado |
+| Filtro de LGPD (nenhum nome de pessoa natural) | `hermes/formatador.py` | ✅ 5 testes |
+| Não-repetição garantida pelo banco | índice parcial `uq_hermes_chave` | ✅ Provado em SQL |
+| Opt-in por código, dois fatores | `hermes/webhook.py` + tela do painel | ✅ Ponta a ponta |
+| Botão "Marcar como visto" | callback do webhook | ✅ Grava triagem e auditoria |
+
+**Pendente:** nada foi exercitado contra a Bot API real — a verificação usou um Telegram
+simulado local. Falta criar o bot no `@BotFather`, configurar `TELEGRAM_BOT_TOKEN` e
+`PAINEL_BASE_URL` públicos e chamar `POST /hermes/webhook/registrar`. O webhook exige
+HTTPS em URL pública; em `localhost` o Telegram não entrega. Ver `backend/DEPLOY.md`, §6.
 
 ---
 
@@ -66,7 +82,10 @@ Estes blocos não dependem de contratação, mensalidade ou chaves pagas. Funcio
 ## Pendências de código (refinamentos)
 
 1. **DL 779/69 no painel fiscal** (`painel-fiscal-pradopolis-main/backend/app/juridico/prazo.py`) — alinhar o cálculo do rito trabalhista no painel fiscal com a regra já ajustada no MCP.
-2. **Timeout no DJEN** (`comunica/client.py:38`) — elevar de 45s para 90s com política de retry para períodos de alta concorrência na API do CNJ.
+2. ~~**Timeout no DJEN**~~ — **resolvido em 03/09/2026.** A varredura do backend passa
+   `timeout=90.0` ao construir o `ComunicaClient` (`backend/app/services/acervo.py`). O
+   padrão de 45s do MCP fica intocado: quem tem varredura de 2000 itens é o serviço, não
+   a biblioteca. O retry com backoff já existia no agendador.
 3. **Cosmético**: Atualizar contagem de tribunais no README para refletir exatamente os 92 dicionários suportados.
 
 ---

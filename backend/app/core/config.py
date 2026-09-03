@@ -25,6 +25,15 @@ def agora() -> datetime.datetime:
     return datetime.datetime.now(tz=FUSO_FORO)
 
 
+def _hora(texto: str) -> datetime.time:
+    """"HH:MM" -> time. Configuracao malformada nao pode derrubar o agendador."""
+    hora, _, minuto = texto.partition(":")
+    try:
+        return datetime.time(int(hora), int(minuto or 0))
+    except ValueError:
+        return datetime.time(0, 0)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
@@ -46,9 +55,41 @@ class Settings(BaseSettings):
 
     frontend_origin: str = "http://localhost:5173"
 
+    # --- Hermes: notificacao via Telegram (Task 3) --------------------------
+    # O token do bot da acesso total a ele: e segredo, fica fora de repr e de log.
+    telegram_bot_token: str = Field(default="", repr=False)
+    telegram_chat_id_grupo: str = ""
+    telegram_hora_resumo: str = "08:00"
+    telegram_silencio_inicio: str = "20:00"
+    telegram_silencio_fim: str = "07:00"
+    # Segredo do cabecalho X-Telegram-Bot-Api-Secret-Token: sem ele, qualquer um
+    # que descubra a URL do webhook fala pelo bot.
+    telegram_webhook_secret: str = Field(default="", repr=False)
+    telegram_api_base: str = "https://api.telegram.org"
+    painel_base_url: str = "http://127.0.0.1:8100"
+    hermes_ativo: bool = True
+    hermes_dias_criticos: int = 3
+    hermes_intervalo_alertas_min: int = 30
+
     @property
     def termos_confirmacao(self) -> list[str]:
         return [t.strip() for t in self.juridico_termos_confirmacao.split(",") if t.strip()]
+
+    @property
+    def hermes_configurado(self) -> bool:
+        """Sem token nao ha bot. O servico sobe do mesmo jeito, so nao notifica."""
+        return bool(self.telegram_bot_token)
+
+    def janela_de_silencio(self, momento: datetime.time) -> bool:
+        """Entre 20h e 07h o bot cala. A janela cruza a meia-noite, entao o teste
+        e uma UNIAO (>= inicio OU < fim), nao uma interseccao."""
+        inicio = _hora(self.telegram_silencio_inicio)
+        fim = _hora(self.telegram_silencio_fim)
+        if inicio == fim:
+            return False
+        if inicio < fim:  # janela dentro do mesmo dia
+            return inicio <= momento < fim
+        return momento >= inicio or momento < fim
 
 
 settings = Settings()

@@ -268,7 +268,45 @@ qualquer uma para voltar ao inteiro teor.
 
 ---
 
-### 4.6 Fontes e limites — *a página da honestidade*
+### 4.6 Avisos no Telegram — *o sistema procurando você*
+
+As telas anteriores esperam que alguém abra o painel. Esta faz o contrário: um bot
+chamado **Hermes** leva o recado ao Telegram.
+
+**O que chega, e quando:**
+
+| Aviso | Quando | Onde |
+|---|---|---|
+| Resumo do dia | 08:00, dias úteis do calendário forense | grupo da Procuradoria |
+| Alerta crítico | prazo ≤ 3 dias úteis, ou menção a liminar, tutela de urgência, penhora ou bloqueio | no seu privado |
+
+O resumo traz os prazos que vencem, quantas publicações estão sem triagem e o tamanho
+do acervo. **Quando não há nada crítico, ele diz isso** — se o bot ficasse mudo, você
+não saberia se o dia está tranquilo ou se o sistema caiu.
+
+O alerta crítico chega **uma vez por publicação**, nunca duas, e traz dois botões:
+*Abrir no painel* e *Marcar como visto* — este último grava a triagem como **Em
+análise** em seu nome, e a equipe inteira vê no painel.
+
+Das **20h às 07h o bot cala**. O que acontecer nesse intervalo entra no resumo da manhã.
+
+**Como passar a receber:** clique em *Gerar meu código*, abra o Telegram, procure o bot
+do Departamento e envie `/vincular` seguido do código. Ele vale 15 minutos e serve uma
+vez só. Para parar, o botão *Parar de receber avisos* — sem burocracia.
+
+> **O que nunca vai pelo Telegram.** Nenhum nome de pessoa natural aparece nas
+> mensagens — nem no grupo, nem no seu privado. O inteiro teor também não trafega: a
+> mensagem leva o número do processo e um link, e o texto se lê no painel, onde há
+> login e auditoria. A regra é simples: se a mensagem vazar num print de grupo, ela não
+> pode expor mais do que já está no número do processo.
+
+> **O Hermes não dá ciência de intimação.** Nenhum botão do bot produz efeito
+> processual. Dar-se por intimado é ato irreversível e não fica a um toque de distância
+> num aplicativo de mensagem.
+
+---
+
+### 4.7 Fontes e limites — *a página da honestidade*
 
 Documenta de onde vem cada dado, o que o sistema **não** faz, e a base legal do
 tratamento. **Leia antes de confiar em qualquer número** — e mostre esta tela a
@@ -346,6 +384,8 @@ Está no topo do plano de melhorias (§11, Fase 1).
 Uma proposta de fluxo para o departamento:
 
 **Manhã — 10 minutos, quem estiver de plantão**
+0. O resumo do Hermes chega às 08:00 no grupo. Ele diz se há algo urgente **antes**
+   de alguém abrir o sistema — mas não substitui os passos seguintes.
 1. Abrir o **Painel**. Olhar os dois primeiros números.
 2. Ir em **Publicações**, filtrar por **Sem triagem**.
 3. Para cada uma: ler o inteiro teor, conferir o ato e o prazo, atribuir um
@@ -356,7 +396,12 @@ Uma proposta de fluxo para o departamento:
 5. Filtrar Publicações pelo próprio nome no campo de responsável.
 6. Antes de peticionar, abrir o **link de validação** e conferir no sistema do
    tribunal.
-7. Protocolado o ato, marcar **Providenciado**.
+7. Protocolado o ato, marcar **Providenciado**. Feito isso, o Hermes para de
+   alertar sobre ele.
+
+**Uma vez, por pessoa**
+7b. Tela **Avisos no Telegram** → *Gerar meu código* → `/vincular` no bot. Sem esse
+    passo, os alertas do que é seu não chegam a você — vão para o grupo.
 
 **Semanalmente — procurador-chefe**
 8. **Carteira** para a visão do acervo; **Prazos** para conferir se algum

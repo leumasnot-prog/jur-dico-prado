@@ -99,7 +99,10 @@ async def varrer_e_persistir(
     inicio = fim - datetime.timedelta(days=dias)
 
     # Assinatura do MCP: sigla_tribunal (nao "tribunal"), e devolve LISTA.
-    brutas = await m["Cliente"]().buscar(
+    # 90s, e nao os 45s padrao do MCP: sob concorrencia o DJEN ja respondeu em
+    # 10-16s e estourou o padrao em teste real. O default do MCP fica intocado —
+    # quem tem uma varredura de 2000 itens e este servico, nao a biblioteca.
+    brutas = await m["Cliente"](timeout=90.0).buscar(
         nome_parte=settings.juridico_nome_parte, sigla_tribunal=tribunal,
         data_inicio=inicio.isoformat(), data_fim=fim.isoformat(), max_itens=2000,
     )

@@ -57,6 +57,54 @@ JURIDICO_FERIADOS_LOCAIS=2026-05-20=Aniversário de Pradópolis,2026-08-06=Padro
 
 Vale para todo o acervo assim que salvo — os prazos são recalculados na leitura.
 
+## 6. Hermes — avisos no Telegram
+
+Opcional. Sem `TELEGRAM_BOT_TOKEN` o serviço sobe igual, apenas não notifica; o
+`/health` diz `"hermes_configurado": false`.
+
+**a) Criar o bot.** No Telegram, fale com **@BotFather** → `/newbot`. Ele devolve um
+token no formato `123456789:AAH...`. Esse token dá controle total do bot: trate como
+senha, ponha só no `.env` do host, nunca no git.
+
+**b) Descobrir o id do grupo.** Crie o grupo da Procuradoria, adicione o bot e mande
+qualquer mensagem lá. Depois abra:
+
+```
+https://api.telegram.org/bot<SEU_TOKEN>/getUpdates
+```
+
+O `chat.id` do grupo é **negativo** (ex.: `-1001234567890`). É esse valor que vai em
+`TELEGRAM_CHAT_ID_GRUPO`.
+
+**c) Variáveis no host:**
+
+```
+TELEGRAM_BOT_TOKEN=123456789:AAH...
+TELEGRAM_CHAT_ID_GRUPO=-1001234567890
+TELEGRAM_WEBHOOK_SECRET=<gere com: python -c "import secrets; print(secrets.token_urlsafe(32))">
+PAINEL_BASE_URL=https://juridico-pradopolis.onrender.com
+```
+
+`PAINEL_BASE_URL` precisa ser a **URL pública** antes do primeiro envio — é dela que
+saem os links das mensagens.
+
+**d) Registrar o webhook.** Entre no painel como chefe e chame uma vez:
+
+```
+POST /hermes/webhook/registrar
+```
+
+O Telegram exige **HTTPS em URL pública**: em `localhost` ele não entrega, e os botões
+das mensagens não funcionam.
+
+**e) Cada pessoa faz o próprio opt-in.** Tela **Avisos no Telegram** → *Gerar meu
+código* → envie `/vincular SEUCODIGO` ao bot. O código vale 15 minutos e serve uma vez.
+Ninguém cadastra ninguém: é preciso a senha do painel e o Telegram da própria pessoa.
+
+**Cadência:** resumo às 08:00 em dias úteis do calendário forense, no grupo; alerta
+crítico no privado do responsável, no máximo um por publicação; silêncio das 20h às
+07h — o que ocorre nessa janela entra no resumo da manhã.
+
 ## Alternativas ao Render
 
 O mesmo `Dockerfile` serve para **Fly.io**, **Railway** ou qualquer host que rode

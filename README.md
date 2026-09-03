@@ -97,6 +97,32 @@ as duas pegadinhas da string de conexão do Neon documentadas.
 
 ---
 
+## Avisos no Telegram (Hermes)
+
+Um bot leva o recado a tempo — e não faz nada além disso.
+
+- **Resumo diário** às 08:00, em dias úteis do calendário forense, no grupo da
+  Procuradoria: prazos vencendo em até 3 dias úteis, publicações sem triagem, tamanho
+  do acervo. Quando não há nada crítico, ele diz isso — silêncio total faz a equipe
+  duvidar se o sistema está no ar.
+- **Alerta crítico** no privado do procurador responsável, no máximo **um por
+  publicação**. Dispara por prazo curto ou por menção a liminar, tutela de urgência,
+  penhora ou bloqueio, que não esperam o prazo encurtar.
+- **Silêncio das 20h às 07h.** O que ocorre nessa janela entra no resumo da manhã.
+
+**Nenhum nome de pessoa natural sai numa mensagem**, e o inteiro teor nunca trafega
+pelo Telegram: a mensagem leva o número do processo e um link, e o texto se lê no
+painel, onde há login e auditoria. O opt-in é de dois fatores — o código nasce no
+painel, com a senha da pessoa, e é resgatado do Telegram dela.
+
+O Hermes **não confirma ciência de intimação**. Efeito jurídico irreversível não fica
+a um toque de distância num aplicativo de mensagem.
+
+Configuração em [`backend/DEPLOY.md`](backend/DEPLOY.md), seção 6. Sem token, o serviço
+sobe igual e apenas não notifica.
+
+---
+
 ## Papéis
 
 | Ação | Chefe | Procurador | Assessor | Estagiário |
@@ -121,6 +147,8 @@ somente-inserção.
 - **Não lê os autos** — nenhuma fonte pública devolve o teor das peças.
 - **Não enxerga processo em segredo de justiça** — bloqueado na origem.
 - **Não peticiona, não assina, não protocola.**
+- O **Hermes** foi verificado ponta a ponta contra um Telegram simulado, **não contra a
+  Bot API real** — falta criar o bot no @BotFather e registrar o webhook em HTTPS público.
 - O módulo do **Domicílio Judicial Eletrônico** está pronto no código mas **não
   validado contra a API real** — depende de credenciamento do Município no CNJ.
 

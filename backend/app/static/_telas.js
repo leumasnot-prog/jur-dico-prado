@@ -647,6 +647,121 @@ function telaFontes(){
 
 
 /* ═══════════════════════════════════════════════════════════════
+   Avisos no Telegram (Hermes) — Task 3
+   O opt-in é por código de vida curta: a pessoa se identifica no
+   painel com a senha dela e depois fala com o bot do Telegram dela.
+   São dois fatores independentes — ninguém cadastra ninguém.
+   ═══════════════════════════════════════════════════════════════ */
+
+function telaAvisos(){
+  view.innerHTML = `
+  <div class="grid2">
+    <div class="card">
+      <div class="card-h"><h3>Meu Telegram</h3></div>
+      <div id="hermes-corpo" style="padding:15px 17px;font-size:13px;line-height:1.6">
+        <div class="empty"><strong>Consultando…</strong></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>O que o Hermes faz — e o que não faz</h3></div>
+      <div style="padding:15px 17px;display:flex;flex-direction:column;gap:13px;font-size:13px;line-height:1.6">
+        <div>
+          <span class="pill acc">Resumo diário</span>
+          <p style="margin:7px 0 0">Às <b>08:00</b>, em dias úteis do calendário forense, no grupo da
+          Procuradoria: os prazos vencendo em até 3 dias úteis, quantas publicações estão sem triagem
+          e o tamanho do acervo. Não sai em fim de semana, feriado nem recesso.</p>
+        </div>
+        <div>
+          <span class="pill acc">Alerta crítico</span>
+          <p style="margin:7px 0 0">No seu privado, quando um prazo seu cai para <b>3 dias úteis ou
+          menos</b> — ou quando a publicação menciona liminar, tutela de urgência, penhora ou bloqueio,
+          que não esperam o prazo encurtar. <b>Um alerta por publicação</b>, nunca dois.</p>
+        </div>
+        <div>
+          <span class="pill">Silêncio 20h–07h</span>
+          <p style="margin:7px 0 0">O que acontece de madrugada entra no resumo da manhã.</p>
+        </div>
+        <div class="note">
+          <b>Nenhum nome de pessoa natural sai numa mensagem</b>, nem no grupo nem no privado, e o
+          inteiro teor nunca vai pelo Telegram — a mensagem leva o número do processo e um link, e o
+          texto se lê aqui, onde há login e auditoria. Se a mensagem vazar num print, ela não expõe
+          mais do que já está no número do processo.
+        </div>
+        <div class="note">
+          O Hermes <b>não confirma ciência de intimação</b>. Efeito jurídico irreversível não fica a um
+          toque de distância num aplicativo de mensagem.
+        </div>
+      </div>
+    </div>
+  </div>`;
+  pintarHermes();
+}
+
+async function pintarHermes(){
+  const box = el("hermes-corpo");
+  let s;
+  try { s = await hermes.ver(); }
+  catch(erro){
+    box.innerHTML = `<div class="empty"><strong>Não foi possível consultar</strong>
+      <span>${esc(erro.message)}</span></div>`;
+    return;
+  }
+
+  if(!s.hermes_disponivel){
+    box.innerHTML = `<div class="empty"><strong>Hermes não está configurado</strong>
+      <span>O servidor está sem <code>TELEGRAM_BOT_TOKEN</code>. Fale com quem administra o painel.</span></div>`;
+    return;
+  }
+
+  if(s.situacao === "vinculado"){
+    box.innerHTML = `
+      <p><span class="pill ok">Vinculado</span></p>
+      <p style="margin:11px 0 0">Conta do Telegram: <b>${esc(s.nome_telegram || "—")}</b><br>
+      Autorizado em ${s.desde ? esc(String(s.desde).slice(0,10).split("-").reverse().join("/")) : "—"}.</p>
+      <p style="margin:13px 0 0">Você recebe no privado os alertas das publicações sob sua
+      responsabilidade.</p>
+      <div class="acoes" style="margin-top:15px">
+        <button class="btn sm" id="h-sair">Parar de receber avisos</button>
+      </div>`;
+    el("h-sair").onclick = async () => {
+      if(!confirm("Desvincular seu Telegram? Você deixa de receber os alertas de prazo.")) return;
+      try { await hermes.desvincular(); pintarHermes(); }
+      catch(erro){ alert(erro.message); }
+    };
+    return;
+  }
+
+  const temCodigo = s.situacao === "aguardando_codigo" && s.codigo;
+  box.innerHTML = `
+    <p><span class="pill">${temCodigo ? "Aguardando confirmação" : "Sem vínculo"}</span></p>
+    <p style="margin:11px 0 0">Para receber os avisos, três passos:</p>
+    <ol style="margin:9px 0 0;padding-left:19px;display:flex;flex-direction:column;gap:6px">
+      <li>Abra o Telegram e procure o bot do Departamento Jurídico.</li>
+      <li>Peça seu código aqui — ele vale <b>15 minutos</b> e serve uma vez só.</li>
+      <li>Envie ao bot: <code class="mono">/vincular SEUCODIGO</code></li>
+    </ol>
+    ${temCodigo ? `
+      <div class="calc-out" style="margin-top:15px;text-align:center">
+        <div class="bar-lbl">Seu código</div>
+        <div class="big mono" style="letter-spacing:.14em">${esc(s.codigo)}</div>
+        <div class="hint">Envie <code class="mono">/vincular ${esc(s.codigo)}</code> ao bot</div>
+      </div>` : ""}
+    <div class="acoes" style="margin-top:15px">
+      <button class="btn sm" id="h-codigo">${temCodigo ? "Gerar outro código" : "Gerar meu código"}</button>
+      <button class="btn sm" id="h-recarregar">Já enviei — conferir</button>
+    </div>`;
+
+  el("h-codigo").onclick = async (ev) => {
+    ev.target.disabled = true;
+    try { await hermes.pedirCodigo(); }
+    catch(erro){ alert(erro.message); }
+    pintarHermes();
+  };
+  el("h-recarregar").onclick = () => pintarHermes();
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
    Tour guiado — Ciclo 2
    Escrito à mão de propósito: o painel é um arquivo único que abre
    offline com duplo clique, e não pode depender de CDN.
@@ -783,6 +898,7 @@ const TELAS = {
   prazos:      [telaPrazos,      "Prazos",       "Agenda de vencimentos e calculadora processual"],
   carteira:    [telaCarteira,    "Carteira",     "Processos do Município descobertos por nome da parte"],
   processo:    [telaProcesso,    "Processo",     "Histórico de publicações de um feito"],
+  avisos:      [telaAvisos,      "Avisos no Telegram", "Hermes: resumo diário no grupo e alerta crítico no privado"],
   fontes:      [telaFontes,      "Fontes e limites", "O que cada fonte entrega e o que ela não entrega"]
 };
 function rota(){

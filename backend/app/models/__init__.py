@@ -20,6 +20,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -186,8 +187,78 @@ class Auditoria(Base):
     criado_em: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=agora)
 
 
+class VinculoTelegram(Base):
+    """Opt-in do usuario no Hermes. Uma linha por usuario, dois estados.
+
+    PENDENTE: `codigo` preenchido, `telegram_user_id` vazio — o usuario pediu o
+    codigo no painel e ainda nao falou com o bot.
+    VINCULADO: `telegram_user_id` preenchido, `codigo` nulo.
+
+    Ninguem e cadastrado sem autorizar: o vinculo so nasce quando a propria
+    pessoa envia o codigo ao bot, de dentro do Telegram dela.
+    """
+
+    __tablename__ = "telegram_vinculos"
+
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("usuarios.id", ondelete="CASCADE"), primary_key=True
+    )
+    telegram_user_id: Mapped[str | None] = mapped_column(String(32), unique=True, index=True)
+    telegram_chat_id: Mapped[str | None] = mapped_column(String(32))
+    nome_telegram: Mapped[str | None] = mapped_column(String(160))
+    codigo: Mapped[str | None] = mapped_column(String(16), unique=True, index=True)
+    codigo_expira_em: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    opt_in_em: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
+    criado_em: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=agora)
+
+    usuario: Mapped[Usuario] = relationship(lazy="selectin")
+
+    def __repr__(self) -> str:  # codigo fora do repr: e credencial de curta vida
+        return f"<VinculoTelegram usuario={self.usuario_id} ativo={self.ativo}>"
+
+
+class EnvioHermes(Base):
+    """Trilha dos avisos enviados. Responde "quem foi avisado do que, e quando".
+
+    A UNICIDADE E DO BANCO, nao do codigo: o indice parcial abaixo torna
+    impossivel gravar dois envios bem-sucedidos com a mesma `chave`. E o que
+    garante "no maximo um alerta por publicacao" mesmo se o agendador rodar duas
+    vezes ou dois processos subirem em paralelo.
+
+    `sucesso` tem tres estados de proposito:
+      None  = reservado, envio em curso  -> ja bloqueia duplicata
+      True  = entregue                   -> bloqueia para sempre
+      False = falhou                     -> LIBERA a chave para nova tentativa
+    """
+
+    __tablename__ = "hermes_envios"
+    __table_args__ = (
+        Index(
+            "uq_hermes_chave",
+            "chave",
+            unique=True,
+            postgresql_where=text("sucesso IS NOT FALSE"),
+        ),
+        Index("ix_hermes_criado", "criado_em"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    chave: Mapped[str] = mapped_column(String(120), index=True)
+    tipo: Mapped[str] = mapped_column(String(30), index=True)
+    destino: Mapped[str] = mapped_column(String(32))
+    usuario_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.id", ondelete="SET NULL"))
+    publicacao_id: Mapped[str | None] = mapped_column(
+        ForeignKey("publicacoes.id", ondelete="SET NULL")
+    )
+    sucesso: Mapped[bool | None] = mapped_column(Boolean, default=None)
+    erro: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=agora)
+
+
 __all__ = [
     "Auditoria",
+    "EnvioHermes",
     "Papel",
     "Processo",
     "Procurador",
@@ -195,4 +266,5 @@ __all__ = [
     "StatusTriagem",
     "Triagem",
     "Usuario",
+    "VinculoTelegram",
 ]

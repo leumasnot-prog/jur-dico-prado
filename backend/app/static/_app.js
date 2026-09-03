@@ -210,3 +210,12 @@ async function salvarTriagem(pub, campos) {
 async function dispararVarredura() {
   return api("/acervo/varredura?dias=30", { method: "POST" });
 }
+
+
+/* ── Hermes: opt-in de avisos no Telegram ────────────────────────── */
+
+const hermes = {
+  ver:         () => api("/hermes/vinculo"),
+  pedirCodigo: () => api("/hermes/vinculo/codigo", { method: "POST" }),
+  desvincular: () => api("/hermes/vinculo", { method: "DELETE" }),
+};
