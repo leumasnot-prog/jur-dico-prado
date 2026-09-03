@@ -872,6 +872,177 @@ function ligarAcoes(caixa){
 
 
 /* ═══════════════════════════════════════════════════════════════
+   Minha conta — senha, e (para a chefia) a equipe
+
+   A senha provisória é MOSTRADA UMA VEZ, na tela de quem criou, e não
+   é enviada por canal nenhum: o painel não tem e-mail, e mandar senha
+   por Telegram ou WhatsApp é justamente o que não se deve fazer. Quem
+   cria dita a senha à pessoa, que troca no primeiro acesso.
+   ═══════════════════════════════════════════════════════════════ */
+
+const PAPEL_TXT = {
+  chefe: "Procurador-chefe — atribui, gerencia usuários e vê segredo de justiça",
+  procurador: "Procurador — vê segredo de justiça e dispara varredura",
+  assessor: "Assessor / auxiliar administrativa — distribui os feitos entre os procuradores",
+  estagiario: "Estagiário — lê e tria, sem acesso a segredo de justiça"
+};
+
+function telaConta(){
+  const chefia = USUARIO?.papel === "chefe";
+  view.innerHTML = `
+  <div class="${chefia ? "split" : ""}">
+    <div class="stack">
+      <div class="card">
+        <div class="card-h"><h3>Meus dados</h3></div>
+        <div style="padding:15px 17px;font-size:13px;line-height:1.7">
+          <div><b>${esc(USUARIO?.nome || "—")}</b></div>
+          <div class="cell-sub">${esc(USUARIO?.email || "")}</div>
+          <p style="margin:10px 0 0"><span class="pill acc">${esc(USUARIO?.papel || "")}</span></p>
+          <p style="margin:9px 0 0;color:var(--muted)">${esc(PAPEL_TXT[USUARIO?.papel] || "")}</p>
+          ${(USUARIO?.oabs || []).length ? `
+            <p style="margin:13px 0 0">Inscrições na OAB:
+              ${USUARIO.oabs.map(o => `<span class="tag mono">${esc(o)}</span>`).join(" ")}</p>
+            <div class="note" style="margin-top:9px">É por estas inscrições que as
+              publicações caem sozinhas na sua fila. Se faltar alguma, peça à chefia.</div>`
+            : `<div class="note" style="margin-top:13px">Você não tem OAB cadastrada —
+               suas publicações precisam ser distribuídas manualmente.</div>`}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Trocar minha senha</h3></div>
+        <div class="calc">
+          <div class="fld"><label for="s-atual">Senha atual</label>
+            <input type="password" id="s-atual" autocomplete="current-password"></div>
+          <div class="fld"><label for="s-nova">Senha nova</label>
+            <input type="password" id="s-nova" autocomplete="new-password"
+                   placeholder="mínimo 10 caracteres"></div>
+          <div class="fld"><label for="s-conf">Repita a senha nova</label>
+            <input type="password" id="s-conf" autocomplete="new-password"></div>
+          <div class="acoes"><button class="btn" id="s-salvar">Trocar senha</button></div>
+          <div id="s-aviso"></div>
+        </div>
+      </div>
+    </div>
+
+    ${chefia ? `<div class="card">
+      <div class="card-h"><h3>Equipe</h3>
+        <button class="btn sm" id="u-novo">Cadastrar pessoa</button></div>
+      <div id="u-lista"><div class="empty"><strong>Carregando…</strong></div></div>
+    </div>` : ""}
+  </div>`;
+
+  el("s-salvar").onclick = trocarMinhaSenha;
+  if(chefia){ el("u-novo").onclick = formularioNovoUsuario; listarEquipe(); }
+}
+
+async function trocarMinhaSenha(){
+  const aviso = el("s-aviso");
+  const atual = el("s-atual").value, nova = el("s-nova").value, conf = el("s-conf").value;
+  const erro = t => aviso.innerHTML = `<div class="login-erro" role="alert">${esc(t)}</div>`;
+
+  if(nova.length < 10) return erro("A senha nova precisa de ao menos 10 caracteres.");
+  if(nova !== conf)    return erro("As duas senhas novas não conferem.");
+
+  const b = el("s-salvar");
+  b.disabled = true; b.textContent = "Trocando…";
+  try{
+    await minhaConta.trocar(atual, nova);
+    aviso.innerHTML = `<div class="note"><b>Senha trocada.</b> Ela já vale para o
+      próximo acesso — e para o Telegram, nada muda.</div>`;
+    ["s-atual","s-nova","s-conf"].forEach(i => el(i).value = "");
+  }catch(e){ erro(e.message); }
+  finally{ b.disabled = false; b.textContent = "Trocar senha"; }
+}
+
+/* ── Chefia: a equipe ────────────────────────────────────────────── */
+
+async function listarEquipe(){
+  let pessoas;
+  try{ pessoas = await minhaConta.usuarios(); }
+  catch(e){
+    el("u-lista").innerHTML = `<div class="empty"><strong>Não foi possível carregar</strong>
+      <span>${esc(e.message)}</span></div>`;
+    return;
+  }
+  el("u-lista").innerHTML = `<div class="agenda">${pessoas.map(u => `
+    <div class="ag-row" style="grid-template-columns:1fr auto">
+      <div>
+        <div class="cell-num">${esc(u.nome)}
+          <span class="pill ${u.ativo ? "acc" : "neutral"}">${esc(u.papel)}</span></div>
+        <div class="cell-sub">${esc(u.email)}${
+          u.oabs.length ? ` · OAB ${u.oabs.map(esc).join(", ")}` : " · sem OAB"}</div>
+      </div>
+      <button class="btn sm" data-redef="${u.id}" data-nome="${esc(u.nome)}">Redefinir senha</button>
+    </div>`).join("")}</div>`;
+
+  el("u-lista").querySelectorAll("[data-redef]").forEach(b => b.onclick = async () => {
+    const nova = senhaProvisoria();
+    if(!confirm(`Redefinir a senha de ${b.dataset.nome}?\n\n`
+      + `A senha provisória será:\n\n    ${nova}\n\n`
+      + `Anote AGORA — ela não é mostrada de novo, e não é enviada por e-mail `
+      + `nem por mensagem. Dite à pessoa, que deve trocá-la no primeiro acesso.`)) return;
+    b.disabled = true;
+    try{
+      await minhaConta.redefinir(b.dataset.redef, nova);
+      alert(`Senha de ${b.dataset.nome} redefinida.\n\n    ${nova}\n\n`
+        + `Esta é a última vez que ela aparece. A troca ficou registrada na auditoria.`);
+    }catch(e){ alert(e.message); }
+    finally{ b.disabled = false; }
+  });
+}
+
+function formularioNovoUsuario(){
+  const alvo = el("u-lista");
+  alvo.innerHTML = `<div class="calc">
+    <div class="fld"><label for="n-nome">Nome completo</label>
+      <input type="text" id="n-nome" placeholder="NOME COMO APARECE NO DIÁRIO"></div>
+    <div class="fld"><label for="n-email">E-mail funcional</label>
+      <input type="email" id="n-email" placeholder="nome@pradopolis.sp.gov.br"></div>
+    <div class="fld"><label for="n-papel">Papel</label>
+      <select id="n-papel">
+        <option value="procurador">Procurador</option>
+        <option value="assessor">Assessor / auxiliar administrativa</option>
+        <option value="estagiario">Estagiário</option>
+        <option value="chefe">Procurador-chefe</option>
+      </select></div>
+    <div class="fld"><label for="n-oabs">Inscrições na OAB</label>
+      <input type="text" id="n-oabs" placeholder="SP/274238, MG/130719">
+      <div class="hint">Separe por vírgula. É por elas que as publicações são
+        roteadas — sem OAB, tudo cai na fila da chefia.</div></div>
+    <div class="acoes">
+      <button class="btn" id="n-salvar">Cadastrar</button>
+      <button class="btn sm" id="n-cancelar">Cancelar</button>
+    </div>
+    <div id="n-aviso"></div>
+  </div>`;
+
+  el("n-cancelar").onclick = listarEquipe;
+  el("n-salvar").onclick = async () => {
+    const aviso = el("n-aviso");
+    const nome = el("n-nome").value.trim(), email = el("n-email").value.trim();
+    if(nome.length < 2 || !email)
+      return aviso.innerHTML = `<div class="login-erro">Preencha nome e e-mail.</div>`;
+
+    const senha = senhaProvisoria();
+    const b = el("n-salvar");
+    b.disabled = true; b.textContent = "Cadastrando…";
+    try{
+      await minhaConta.criar({ nome, email, senha, papel: el("n-papel").value,
+        oabs: el("n-oabs").value.split(",").map(x => x.trim()).filter(Boolean) });
+      alert(`${nome} cadastrado.\n\nSenha provisória:\n\n    ${senha}\n\n`
+        + `Anote AGORA — não é mostrada de novo nem enviada por canal nenhum. `
+        + `Dite à pessoa, que deve trocá-la no primeiro acesso em "Minha conta".`);
+      listarEquipe();
+    }catch(e){
+      aviso.innerHTML = `<div class="login-erro">${esc(e.message)}</div>`;
+      b.disabled = false; b.textContent = "Cadastrar";
+    }
+  };
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
    Avisos no Telegram (Hermes) — Task 3
    O opt-in é por código de vida curta: a pessoa se identifica no
    painel com a senha dela e depois fala com o bot do Telegram dela.
@@ -1125,6 +1296,7 @@ const TELAS = {
   carteira:    [telaCarteira,    "Carteira",     "Processos do Município descobertos por nome da parte"],
   processo:    [telaProcesso,    "Processo",     "Histórico de publicações de um feito"],
   avisos:      [telaAvisos,      "Avisos no Telegram", "Hermes: resumo diário no grupo e alerta crítico no privado"],
+  conta:       [telaConta,       "Minha conta",  "Sua senha, suas inscrições na OAB e a equipe"],
   fontes:      [telaFontes,      "Fontes e limites", "O que cada fonte entrega e o que ela não entrega"]
 };
 function rota(){

@@ -233,3 +233,25 @@ const agenda = {
   largar:     (numero) =>
     api(`/acervo/processos/${encodeURIComponent(numero)}/acompanhar`, { method: "DELETE" }),
 };
+
+
+/* ── Conta e equipe ──────────────────────────────────────────────── */
+
+const minhaConta = {
+  eu:       ()   => api("/auth/eu"),
+  trocar:   (atual, nova) => api("/auth/senha",
+              { method: "POST",
+                body: JSON.stringify({ senha_atual: atual, senha_nova: nova }) }),
+  usuarios: ()   => api("/auth/usuarios"),
+  criar:    (u)  => api("/auth/usuarios", { method: "POST", body: JSON.stringify(u) }),
+  redefinir:(id, nova) => api(`/auth/usuarios/${id}/senha`,
+              { method: "POST", body: JSON.stringify({ senha_nova: nova }) }),
+};
+
+/** Senha provisória legível: fácil de ditar por telefone, difícil de adivinhar. */
+function senhaProvisoria(){
+  const abc = "abcdefghijkmnopqrstuvwxyzACDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bloco = () => Array.from(crypto.getRandomValues(new Uint8Array(5)))
+    .map(n => abc[n % abc.length]).join("");
+  return `${bloco()}-${bloco()}-${bloco()}`;
+}
