@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import datetime
 
-import pytest
 from sqlalchemy import func, select
 
 from app.models import Auditoria, Processo, Publicacao, Triagem
@@ -30,20 +29,6 @@ def _comunicacao(id_: str, numero: str, oab: str = "SP/274238", tribunal: str = 
     }
 
 
-@pytest.fixture
-def djen_falso(monkeypatch):
-    """Substitui só a rede. O parsing, o cálculo e a persistência são os reais."""
-    def _instalar(comunicacoes: list[dict]):
-        class _Cliente:
-            # Espelha a assinatura real: o servico constroi o cliente com
-            # timeout proprio, e um duble que ignora isso deixa passar erro.
-            def __init__(self, base_url=None, timeout=None):
-                self.timeout = timeout
-
-            async def buscar(self, **kw):
-                return comunicacoes
-        monkeypatch.setattr("mcp_juridico_brasil.comunica.client.ComunicaClient", _Cliente)
-    return _instalar
 
 
 async def test_varredura_persiste_processo_e_publicacao(sessao, usuarios, djen_falso):

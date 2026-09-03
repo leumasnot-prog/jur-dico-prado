@@ -1,0 +1,105 @@
+"""Acionamento externo (GitHub Actions) das rotas /cron/*.
+
+Protegido por segredo estático, não por login — quem chama é um workflow, não
+uma pessoa. O caso que mais importa aqui é o segredo vazio: sem
+`CRON_SECRET` configurado, as rotas precisam ficar fechadas para sempre, não
+abertas por omissão.
+"""
+
+from __future__ import annotations
+
+import datetime
+
+import pytest
+from sqlalchemy import select
+
+from app.models import Auditoria, Publicacao
+
+SEGREDO = "segredo-do-github-actions"
+CABECALHO = {"X-Cron-Secret": SEGREDO}
+
+
+@pytest.fixture
+def cron_config(monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "cron_secret", SEGREDO, raising=False)
+    return settings
+
+
+async def test_sem_cabecalho_e_recusado(cliente, cron_config):
+    r = await cliente.post("/cron/varredura")
+    assert r.status_code == 403
+    r = await cliente.post("/cron/hermes")
+    assert r.status_code == 403
+
+
+async def test_segredo_errado_e_recusado(cliente, cron_config):
+    r = await cliente.post("/cron/hermes", headers={"X-Cron-Secret": "chute"})
+    assert r.status_code == 403
+
+
+async def test_cron_secret_vazio_fecha_a_rota_mesmo_com_algum_cabecalho(cliente, monkeypatch):
+    """Sem configurar nada, a rota tem de recusar — nunca abrir por omissão."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "cron_secret", "", raising=False)
+    r = await cliente.post("/cron/hermes", headers={"X-Cron-Secret": ""})
+    assert r.status_code == 403
+
+
+async def test_varredura_via_cron_persiste_e_audita(cliente, sessao, usuarios, cron_config,
+                                                     djen_falso):
+    djen_falso([{
+        "id": "cron-1", "numero_processo": "00000000000000000001",
+        "numeroprocessocommascara": "0000000-00.0000.0.00.0001",
+        "data_disponibilizacao": datetime.date.today().isoformat(), "siglaTribunal": "TJSP",
+        "nomeOrgao": "1ª Vara", "nomeClasse": "PROCEDIMENTO COMUM",
+        "tipoComunicacao": "Intimação", "tipoDocumento": "Notificação", "meiocompleto": "DJEN",
+        "link": "https://exemplo/x", "texto": "Fica intimado no prazo de 15 dias.",
+        "destinatarios": [{"nome": "MUNICIPIO DE PRADOPOLIS", "polo": "P"}],
+        "destinatarioadvogados": [],
+    }])
+    r = await cliente.post("/cron/varredura", headers=CABECALHO)
+    assert r.status_code == 200
+    assert r.json()["publicacoes_novas"] == 1
+    assert await sessao.get(Publicacao, "cron-1") is not None
+
+    aud = (await sessao.execute(
+        select(Auditoria).where(Auditoria.acao == "varredura_cron"))).scalars().all()
+    assert len(aud) == 1
+
+
+async def test_hermes_via_cron_dispara_resumo_e_alertas(cliente, sessao, usuarios, cron_config,
+                                                         monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "telegram_bot_token", "123456:TOKEN-DE-TESTE", raising=False)
+    monkeypatch.setattr(settings, "telegram_chat_id_grupo", "-100999", raising=False)
+
+    class TelegramFalso:
+        configurado = True
+
+        async def enviar(self, chat_id, texto, botoes=None):
+            return {"message_id": 1}
+
+    monkeypatch.setattr("app.hermes.agendador.ClienteTelegram", TelegramFalso)
+
+    r = await cliente.post("/cron/hermes", headers=CABECALHO)
+    assert r.status_code == 200
+    corpo = r.json()
+    assert corpo["resumo_diario_enviado"] is True
+    assert corpo["alertas_enviados"] == 0  # acervo vazio no teste
+
+    # Segunda chamada no mesmo "dia" não repete o resumo — a garantia de
+    # não-duplicar já é do banco (índice parcial), isto só confirma o efeito.
+    r2 = await cliente.post("/cron/hermes", headers=CABECALHO)
+    assert r2.json()["resumo_diario_enviado"] is False
+
+
+async def test_chamar_hermes_sem_ninguem_configurado_nao_quebra(cliente, sessao, usuarios,
+                                                                cron_config):
+    """Sem TELEGRAM_BOT_TOKEN nem grupo, a rota responde 200 e não tenta enviar nada."""
+    r = await cliente.post("/cron/hermes", headers=CABECALHO)
+    assert r.status_code == 200
+    assert r.json() == {"resumo_diario_enviado": False, "alertas_enviados": 0}

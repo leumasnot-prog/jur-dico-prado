@@ -71,6 +71,14 @@ class Settings(BaseSettings):
     hermes_dias_criticos: int = 3
     hermes_intervalo_alertas_min: int = 30
 
+    # --- Acionamento externo por cron (plano gratuito do host) --------------
+    # O Render (e hosts free equivalentes) hiberna o serviço sem uso. Em vez de
+    # manter uma instância paga só para o agendador interno, um workflow do
+    # GitHub Actions acorda o serviço com uma chamada HTTP em POST /cron/*, e
+    # essa própria chamada É o disparo da tarefa. Sem segredo configurado, as
+    # rotas de cron ficam fechadas (403 sempre) — não abertas.
+    cron_secret: str = Field(default="", repr=False)
+
     @property
     def termos_confirmacao(self) -> list[str]:
         return [t.strip() for t in self.juridico_termos_confirmacao.split(",") if t.strip()]

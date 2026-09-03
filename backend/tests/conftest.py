@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 
+import pytest
 import pytest_asyncio
 
 os.environ.setdefault(
@@ -15,6 +16,27 @@ os.environ.setdefault(
 )
 os.environ.setdefault("JWT_SECRET", "segredo-de-teste-nao-usar-em-producao")
 os.environ.setdefault("VARREDURA_ATIVA", "false")
+
+# ─────────────────────────────────────────────────────────────────────────
+# CORTA TODO CANAL DE SAÍDA ANTES DE QUALQUER IMPORT DO APP.
+#
+# `Settings` lê o .env do diretório — e o .env de desenvolvimento tem o token
+# do bot e o id do grupo REAIS. Sem isto, um teste que esqueça de dublar o
+# cliente manda mensagem de verdade na Procuradoria. Aconteceu: um teste do
+# caminho "nada configurado" encontrou tudo configurado e disparou o resumo
+# diário no grupo.
+#
+# São overrides, não `setdefault`: variável de ambiente vence o .env no
+# pydantic-settings, e é essa precedência que faz o corte valer.
+# ─────────────────────────────────────────────────────────────────────────
+os.environ["TELEGRAM_BOT_TOKEN"] = ""
+os.environ["TELEGRAM_CHAT_ID_GRUPO"] = ""
+os.environ["TELEGRAM_WEBHOOK_SECRET"] = ""
+os.environ["CRON_SECRET"] = ""
+# Segunda linha de defesa: se algum teste reativar o token, ainda assim não
+# há internet do outro lado. `.invalid` é reservado pela RFC 2606 justamente
+# para nunca resolver.
+os.environ["TELEGRAM_API_BASE"] = "http://telegram.invalid"
 
 
 @pytest_asyncio.fixture
@@ -80,3 +102,32 @@ async def token(cliente, usuarios):
         return r.json()["access_token"]
 
     return _obter
+
+
+@pytest.fixture(autouse=True)
+def sem_saida_para_o_telegram(monkeypatch):
+    """Rede de segurança em TODO teste, não só nos que lembram de dublar.
+
+    Reafirma o corte a cada teste: um `monkeypatch` mal desfeito, ou uma
+    fixture nova que ligue o token sem dublar o cliente, ainda assim não
+    alcança a Bot API. O host `.invalid` (RFC 2606) nunca resolve.
+    """
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "telegram_api_base", "http://telegram.invalid", raising=False)
+
+
+@pytest.fixture
+def djen_falso(monkeypatch):
+    """Substitui só a rede. O parsing, o cálculo e a persistência são os reais."""
+    def _instalar(comunicacoes: list[dict]):
+        class _Cliente:
+            # Espelha a assinatura real: o serviço constrói o cliente com
+            # timeout próprio, e um dublê que ignora isso deixa passar erro.
+            def __init__(self, base_url=None, timeout=None):
+                self.timeout = timeout
+
+            async def buscar(self, **kw):
+                return comunicacoes
+        monkeypatch.setattr("mcp_juridico_brasil.comunica.client.ComunicaClient", _Cliente)
+    return _instalar

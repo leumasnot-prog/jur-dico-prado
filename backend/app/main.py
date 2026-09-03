@@ -21,6 +21,7 @@ from app.core.db import reset_engine
 from app.hermes.webhook import router as hermes_router
 from app.routers.acervo import router as acervo_router
 from app.routers.auth import router as auth_router
+from app.routers.cron import router as cron_router
 from app.routers.relatorios import router as relatorios_router
 from app.services import agendador
 
@@ -62,6 +63,7 @@ app.include_router(auth_router)
 app.include_router(acervo_router)
 app.include_router(relatorios_router)
 app.include_router(hermes_router)
+app.include_router(cron_router)
 
 # O painel é servido pelo próprio serviço: um processo só para publicar, e a
 # API na mesma origem — sem CORS e sem token atravessando domínio.

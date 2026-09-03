@@ -1,9 +1,17 @@
-# Deploy no Render (https://render.com) — plano gratuito serve para começar.
+# Deploy no Render (https://render.com) — plano GRATUITO.
 # O banco é o Neon, externo: assim o acervo sobrevive a qualquer redeploy.
+#
+# O plano free HIBERNA o serviço sem uso, o que mataria o agendador interno
+# (varredura das 06h, alertas do Hermes). Por isso VARREDURA_ATIVA e
+# HERMES_ATIVO ficam desligados aqui: quem aciona as tarefas é o workflow
+# .github/workflows/hermes-cron.yml, via POST /cron/varredura e /cron/hermes —
+# essas chamadas acordam o serviço e disparam a tarefa na mesma requisição.
+# Ver backend/DEPLOY.md, §7.
 services:
   - type: web
     name: painel-juridico-pradopolis
     runtime: docker
+    plan: free
     dockerfilePath: ./backend/Dockerfile
     # Contexto na RAIZ do repo, não em backend/: o Dockerfile copia a
     # biblioteca do MCP (pyproject.toml, src/) de fora de backend/, e o Docker
@@ -24,15 +32,21 @@ services:
         value: MUNICIPIO,PREFEITURA
       - key: JURIDICO_UF
         value: SP
+      # Desligados aqui de propósito — ver nota no topo do arquivo. O
+      # GitHub Actions é quem aciona varredura e Hermes neste plano gratuito.
       - key: VARREDURA_ATIVA
-        value: "true"
+        value: "false"
       - key: VARREDURA_HORA
         value: "06:00"
       # PAINEL_BASE_URL precisa ser a URL pública que o Render atribuir a este
       # serviço (ex.: https://painel-juridico-pradopolis.onrender.com) — é
-      # dela que saem os links das mensagens do Hermes.
+      # dela que saem os links das mensagens do Hermes E é o valor que vai no
+      # segredo PAINEL_BASE_URL do repositório no GitHub (§7 do DEPLOY.md).
       - key: PAINEL_BASE_URL
         sync: false
+      # Desligado pelo mesmo motivo que VARREDURA_ATIVA, acima.
+      - key: HERMES_ATIVO
+        value: "false"
       # Sem estas três, o serviço sobe igual e o Hermes fica mudo — não são
       # obrigatórias para o primeiro deploy. Ver backend/DEPLOY.md, §6.
       - key: TELEGRAM_BOT_TOKEN
@@ -40,4 +54,9 @@ services:
       - key: TELEGRAM_CHAT_ID_GRUPO
         sync: false
       - key: TELEGRAM_WEBHOOK_SECRET
+        generateValue: true
+      # Segredo do cabeçalho X-Cron-Secret nas rotas /cron/*. O MESMO valor
+      # vai no segredo CRON_SECRET do repositório no GitHub — sem os dois
+      # baterem, o workflow não consegue acionar nada (403).
+      - key: CRON_SECRET
         generateValue: true

@@ -105,7 +105,58 @@ Ninguém cadastra ninguém: é preciso a senha do painel e o Telegram da própri
 crítico no privado do responsável, no máximo um por publicação; silêncio das 20h às
 07h — o que ocorre nessa janela entra no resumo da manhã.
 
+## 7. Plano gratuito: o GitHub Actions no lugar do agendador interno
+
+O plano free do Render **hiberna o serviço sem uso** — e sem uso é exatamente o estado
+em que a varredura das 06h e os alertas do Hermes precisariam disparar sozinhos. O
+`APScheduler` embutido não sobrevive à hibernação.
+
+A saída não é pagar uma instância sempre ativa. É inverter quem chama: um workflow do
+GitHub Actions (`.github/workflows/hermes-cron.yml`) faz um `POST` no serviço, e essa
+chamada **acorda o container e dispara a tarefa na mesma requisição**. O atraso de
+partida a frio (30-50s) não incomoda ninguém, porque não há pessoa esperando.
+
+```
+GitHub Actions ──POST /cron/varredura──▶ Render (acorda) ──▶ DJEN ──▶ Neon
+               ──POST /cron/hermes ────▶ Render (acorda) ──▶ Telegram
+```
+
+**a) No Render**, as variáveis já vêm certas pelo `render.yaml`: `VARREDURA_ATIVA` e
+`HERMES_ATIVO` ficam `false` (o agendador interno seria redundante), e `CRON_SECRET` é
+gerado automaticamente. **Copie o valor gerado** — você vai precisar dele no passo (b).
+
+**b) No GitHub**, em *Settings → Secrets and variables → Actions → New repository
+secret*, crie dois segredos:
+
+| Segredo | Valor |
+|---|---|
+| `PAINEL_BASE_URL` | a URL pública do Render, **sem barra no fim** (ex.: `https://painel-juridico-pradopolis.onrender.com`) |
+| `CRON_SECRET` | exatamente o mesmo valor que o Render gerou |
+
+Se os dois `CRON_SECRET` não baterem, o workflow recebe **403** e nada roda — é o
+comportamento correto, e aparece no log da Action.
+
+**c) Cadência do workflow**, e por que ela pode ser generosa:
+
+| Rota | Quando | O que faz |
+|---|---|---|
+| `/cron/varredura` | 09:05 UTC (06:05 BRT), seg-sex | Varre o DJEN e grava o que é novo |
+| `/cron/hermes` | a cada 30 min, todo dia | Resumo diário (uma vez só) e alertas críticos |
+
+Chamar `/cron/hermes` de madrugada, no sábado ou dez vezes seguidas **não tem efeito**:
+a regra de dia útil, a janela de silêncio e a não-repetição moram no serviço, não no
+agendamento. Por isso o cron externo pode ser simples e burro — a inteligência está do
+lado que tem o banco.
+
+**d) Testar sem esperar o horário:** na aba *Actions* do repositório, escolha o workflow
+e clique em *Run workflow*. O disparo manual chama `/cron/hermes`.
+
+> **Se um dia migrar para plano pago**, é só inverter: `VARREDURA_ATIVA=true`,
+> `HERMES_ATIVO=true` e apagar o workflow. O agendador interno volta a funcionar sem
+> mudar uma linha de código.
+
 ## Alternativas ao Render
 
 O mesmo `Dockerfile` serve para **Fly.io**, **Railway** ou qualquer host que rode
-container. Só o `render.yaml` é específico.
+container — e as rotas `/cron/*` funcionam igual em qualquer um deles. Só o
+`render.yaml` é específico.

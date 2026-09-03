@@ -1,0 +1,40 @@
+name: Acordar o serviço e rodar as tarefas do Jurídico
+
+# O Render no plano gratuito hiberna o serviço sem uso. Em vez de pagar uma
+# instância sempre ativa só para o agendador interno funcionar, este workflow
+# acorda o serviço com uma chamada HTTP — e a própria chamada JÁ dispara a
+# tarefa (ver backend/app/routers/cron.py). A lógica de "é dia útil?", "já
+# passou de horário de silêncio?" e "já avisei isso hoje?" mora no serviço,
+# não aqui: por isso o agendamento abaixo pode ser generoso sem risco de
+# duplicar nada.
+
+on:
+  schedule:
+    # 09:05 UTC = 06:05 America/Sao_Paulo, dias úteis — varredura do DJEN.
+    # Não coincide com o minuto cheio de propósito: o GitHub atrasa jobs em
+    # horários muito concorridos (:00, :30), e a varredura tolera atraso.
+    - cron: "5 9 * * 1-5"
+    # A cada 30 min, todo santo dia — resumo diário (o serviço só manda uma
+    # vez, o resto do dia esta chamada não faz nada) e alertas críticos.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  acionar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decidir qual rota chamar
+        id: rota
+        run: |
+          if [ "${{ github.event.schedule }}" = "5 9 * * 1-5" ]; then
+            echo "caminho=/cron/varredura" >> "$GITHUB_OUTPUT"
+          else
+            echo "caminho=/cron/hermes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Chamar o serviço (acorda o Render se estiver dormindo)
+        run: |
+          curl --fail --silent --show-error \
+            --max-time 100 --retry 3 --retry-delay 10 --retry-all-errors \
+            -X POST "${{ secrets.PAINEL_BASE_URL }}${{ steps.rota.outputs.caminho }}" \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"
