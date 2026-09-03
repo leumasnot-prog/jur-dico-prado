@@ -97,7 +97,10 @@ def requer_papel(*papeis: Papel):
 # Conjuntos usados nas rotas, nomeados pela intenção e não pela lista de papéis.
 TODOS = (Papel.CHEFE, Papel.PROCURADOR, Papel.ASSESSOR, Papel.ESTAGIARIO)
 PODE_VER_SIGILOSO = (Papel.CHEFE, Papel.PROCURADOR)
-PODE_ATRIBUIR = (Papel.CHEFE,)
+# A auxiliar administrativa distribui os feitos entre os procuradores — e
+# distribuir É o trabalho dela. Deixar isso só com a chefia criaria um gargalo
+# artificial no lugar exato onde o acervo entra na fila da equipe.
+PODE_ATRIBUIR = (Papel.CHEFE, Papel.ASSESSOR)
 PODE_GERIR_USUARIOS = (Papel.CHEFE,)
 PODE_VARRER = (Papel.CHEFE, Papel.PROCURADOR)
 

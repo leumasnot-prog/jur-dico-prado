@@ -41,6 +41,25 @@ python -m app.criar_chefe "Nome do Procurador-Chefe" chefe@pradopolis.sp.gov.br
 O comando pede a senha sem ecoar na tela e não a registra em log nem no histórico.
 Depois disso, os demais usuários são cadastrados pelo próprio painel.
 
+## 3b. A equipe
+
+Depois do chefe, os demais entram por linha de comando também. A **OAB não é
+decoração**: é a chave do roteamento automático — publicação que intima aquela
+inscrição cai sozinha na fila do procurador, sem ninguém distribuir à mão.
+
+```bash
+python -m app.criar_usuario "ADEMILSON PEREIRA RIBEIRO" ademilson@pradopolis.sp.gov.br procurador --oab SP/000000
+python -m app.criar_usuario "LAIZA SOARES DONATO" laiza@pradopolis.sp.gov.br procurador --oab SP/000000
+python -m app.criar_usuario "WESLEY LUIZ ALVES DE PAULA" wesley@pradopolis.sp.gov.br procurador --oab SP/000000
+python -m app.criar_usuario "Nome da Auxiliar" auxiliar@pradopolis.sp.gov.br assessor
+```
+
+Troque `SP/000000` pela inscrição real de cada um. Sem OAB o usuário funciona, mas as
+publicações dele precisam ser distribuídas manualmente.
+
+O papel **assessor** é o da auxiliar administrativa: ela distribui os feitos entre os
+procuradores (atribuir É o trabalho dela), mas não vê processo em segredo de justiça.
+
 ## 4. Primeira varredura
 
 Entre no painel e use **Varrer o diário**. A partir daí a varredura roda sozinha às

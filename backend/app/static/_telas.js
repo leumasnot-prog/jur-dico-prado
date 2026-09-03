@@ -647,6 +647,231 @@ function telaFontes(){
 
 
 /* ═══════════════════════════════════════════════════════════════
+   Minha agenda — calendário pessoal
+
+   PRINCÍPIO: calendário é interface PASSIVA. Só ajuda quem lembra de
+   abrir, e quem tem dificuldade com prazo é exatamente quem não lembra.
+   Por isso a tela tem três camadas, nesta ordem de peso visual:
+
+     1. A faixa "agora"  — decisão, não consulta. Vem antes de tudo.
+     2. A grade do mês   — planejamento, e o feriado explicando a contagem.
+     3. "Me avisa deste" — o empurrão, que não depende de abrir a tela.
+
+   O estado vazio da faixa é uma RECOMPENSA ("você está em dia"), não um
+   "nada encontrado": para quem teme a tela de prazos, o alívio importa.
+   ═══════════════════════════════════════════════════════════════ */
+
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho",
+               "julho","agosto","setembro","outubro","novembro","dezembro"];
+const DIAS_CURTOS = ["dom","seg","ter","qua","qui","sex","sáb"];
+const DIAS_LONGOS = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+const SEV_TXT = { vencido:"Vencido", critico:"Crítico", atencao:"Atenção",
+                  tranquilo:"No prazo", feito:"Providenciado" };
+
+let AG = { mes:null, dados:null, pendencias:[], dia:null };
+
+const mesAtual = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+};
+
+function mesVizinho(m, passo){
+  const [a, mm] = m.split("-").map(Number);
+  const d = new Date(Date.UTC(a, mm - 1 + passo, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}`;
+}
+
+/** Abre a publicação no leitor, pelo mesmo caminho das outras telas. */
+const irParaPub = id => { sel = id; location.hash = "#publicacoes"; };
+
+const emDiasUteis = n => n < 0
+  ? `venceu há ${-n} ${-n === 1 ? "dia útil" : "dias úteis"}`
+  : n === 0 ? "vence hoje"
+  : `faltam ${n} ${n === 1 ? "dia útil" : "dias úteis"}`;
+
+function telaAgenda(){
+  view.innerHTML = `
+    <div id="ag-agora"></div>
+    <div class="split">
+      <div class="card">
+        <div class="cal-topo">
+          <button class="btn sm" id="ag-ant" aria-label="Mês anterior">‹</button>
+          <div class="cal-mes" id="ag-mes">—</div>
+          <button class="btn sm" id="ag-prox" aria-label="Próximo mês">›</button>
+        </div>
+        <div id="ag-grade"><div class="empty"><strong>Carregando…</strong></div></div>
+        <div class="legenda">
+          <span><i style="background:var(--crit)"></i>Vencido</span>
+          <span><i style="background:var(--crit-soft);box-shadow:inset 0 0 0 1px var(--crit)"></i>Até 3 dias úteis</span>
+          <span><i style="background:var(--warn-soft)"></i>Até 7</span>
+          <span><i style="background:var(--ok-soft)"></i>Mais folga</span>
+          <span><i style="background:repeating-linear-gradient(135deg,var(--surface) 0 3px,var(--surface-2) 3px 6px)"></i>Sem expediente — o prazo não corre</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3 id="ag-dia-t">Selecione um dia</h3></div>
+        <div id="ag-dia"><div class="empty"><strong>Clique num dia do calendário</strong>
+          <span>Os prazos daquele dia aparecem aqui, com o que fazer em cada um.</span></div></div>
+      </div>
+    </div>`;
+
+  el("ag-ant").onclick  = () => carregarAgenda(mesVizinho(AG.mes, -1));
+  el("ag-prox").onclick = () => carregarAgenda(mesVizinho(AG.mes, +1));
+  carregarAgenda(AG.mes || mesAtual());
+}
+
+async function carregarAgenda(mes){
+  AG.mes = mes;
+  el("ag-mes").textContent = `${MESES[Number(mes.split("-")[1]) - 1]} ${mes.split("-")[0]}`;
+  try{
+    const [dados, pend] = await Promise.all([agenda.mes(mes), agenda.pendencias()]);
+    AG.dados = dados; AG.pendencias = pend;
+  }catch(erro){
+    el("ag-grade").innerHTML = `<div class="empty"><strong>Não foi possível carregar</strong>
+      <span>${esc(erro.message)}</span></div>`;
+    return;
+  }
+  pintarAgora();
+  pintarGrade();
+  if(AG.dia) pintarDia(AG.dia);
+}
+
+/* ── Camada 1: a faixa que responde "o que eu faço agora" ────────── */
+
+function pintarAgora(){
+  const itens = AG.pendencias, caixa = el("ag-agora");
+  if(!itens.length){
+    caixa.innerHTML = `<div class="agora calmo"><div class="agora-h">
+      <span class="num">✓</span>
+      <span>Nenhum prazo apertado. Você está em dia.</span></div></div>`;
+    return;
+  }
+  const vencidos = itens.filter(i => i.severidade === "vencido").length;
+  caixa.innerHTML = `<div class="agora">
+    <div class="agora-h"><span class="num">${itens.length}</span>
+      <span>${itens.length === 1 ? "prazo exige" : "prazos exigem"} decisão hoje${
+        vencidos ? ` — <b>${vencidos} já ${vencidos === 1 ? "venceu" : "venceram"}</b>` : ""}</span></div>
+    <div class="agora-lista">${itens.map(i => `
+      <div class="agora-item">
+        <div class="quando">${emDiasUteis(i.dias_uteis)}</div>
+        <div class="oq">
+          <div class="cell-num">${esc(i.numero)} <span class="tag">${esc(i.tribunal)}</span></div>
+          <div class="cell-sub">${esc(i.ato || "—")} · vence ${fmtD(i.vencimento)}</div>
+        </div>
+        <div class="acoes">
+          <button class="btn sm" data-abrir="${esc(i.id)}">Ver</button>
+          <button class="btn sm" data-feito="${esc(i.id)}">Providenciei</button>
+        </div>
+      </div>`).join("")}</div></div>`;
+  ligarAcoes(caixa);
+}
+
+/* ── Camada 2: a grade do mês ────────────────────────────────────── */
+
+function pintarGrade(){
+  const { dias, nao_uteis, hoje: hojeIso, mes } = AG.dados;
+  const naoUteis = new Set(nao_uteis);
+  const [ano, mm] = mes.split("-").map(Number);
+  const vazios = new Date(Date.UTC(ano, mm - 1, 1)).getUTCDay();
+  const ultimoDia = new Date(Date.UTC(ano, mm, 0)).getUTCDate();
+
+  let html = DIAS_CURTOS.map(d => `<div class="cal-h">${d}</div>`).join("");
+  for(let i = 0; i < vazios; i++) html += `<div class="cal-d fora"></div>`;
+
+  for(let d = 1; d <= ultimoDia; d++){
+    const iso = `${ano}-${String(mm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const itens = dias[iso] || [];
+    const cls = ["cal-d"];
+    if(naoUteis.has(iso)) cls.push("nao-util");
+    if(iso === hojeIso)   cls.push("hoje");
+    if(iso === AG.dia)    cls.push("sel");
+    const mostra = itens.slice(0, 2), resto = itens.length - mostra.length;
+    html += `<button class="${cls.join(" ")}" data-dia="${iso}"
+        aria-label="dia ${d}, ${itens.length} ${itens.length === 1 ? "prazo" : "prazos"}${
+          naoUteis.has(iso) ? ", sem expediente forense" : ""}">
+      <span class="n">${d}</span>
+      <span class="cal-pts">${mostra.map(i =>
+        `<span class="cal-pt ${i.severidade}">${esc(i.ato || i.tribunal)}</span>`).join("")}${
+        resto > 0 ? `<span class="cal-mais">+${resto}</span>` : ""}</span>
+    </button>`;
+  }
+  el("ag-grade").innerHTML = `<div class="cal">${html}</div>`;
+  el("ag-grade").querySelectorAll("[data-dia]").forEach(b =>
+    b.onclick = () => pintarDia(b.dataset.dia));
+}
+
+/* ── Camada 3: o dia aberto, com "me avisa deste" ────────────────── */
+
+function pintarDia(iso){
+  AG.dia = iso;
+  pintarGrade();
+  const itens = AG.dados.dias[iso] || [];
+  const semExpediente = AG.dados.nao_uteis.includes(iso);
+  el("ag-dia-t").textContent = `${DIAS_LONGOS[parseD(iso).getUTCDay()]}, ${fmtD(iso)}`;
+
+  if(!itens.length){
+    el("ag-dia").innerHTML = `<div class="empty">
+      <strong>Nenhum prazo seu neste dia</strong>
+      <span>${semExpediente
+        ? "E não há expediente forense nesta data — o prazo não corre."
+        : "Dia livre na sua agenda."}</span></div>`;
+    return;
+  }
+
+  const pilula = s => s === "vencido" || s === "critico" ? "crit"
+                    : s === "atencao" ? "warn" : s === "feito" ? "neutral" : "ok";
+
+  el("ag-dia").innerHTML = `<div class="dia-det">
+    ${semExpediente ? `<div class="note"><b>Sem expediente forense nesta data.</b>
+      O cálculo empurra para o próximo dia útil qualquer prazo que cairia aqui.</div>` : ""}
+    ${itens.map(i => `
+      <div class="dia-item ${i.severidade}">
+        <div>
+          <div class="cell-num">${esc(i.numero)} <span class="tag">${esc(i.tribunal)}</span>
+            <span class="pill ${pilula(i.severidade)}">${SEV_TXT[i.severidade]}</span></div>
+          <div class="cell-sub">${esc(i.ato || "—")} · ${esc(titulo(i.classe || ""))}</div>
+        </div>
+        <div class="cell-sub">${emDiasUteis(i.dias_uteis).replace(/^./, c => c.toUpperCase())}${
+          i.meu ? "" : " · <i>processo que você acompanha</i>"}</div>
+        <div class="acoes">
+          <button class="btn sm" data-abrir="${esc(i.id)}">Abrir</button>
+          ${i.severidade !== "feito"
+            ? `<button class="btn sm" data-feito="${esc(i.id)}">Providenciei</button>` : ""}
+          <button class="btn sm" data-seguir="${esc(i.numero_processo)}"
+            aria-pressed="${i.acompanhado}">
+            ${i.acompanhado ? "🔔 Avisando" : "🔕 Me avisa deste"}</button>
+        </div>
+      </div>`).join("")}
+  </div>`;
+  ligarAcoes(el("ag-dia"));
+}
+
+/** Ações compartilhadas pela faixa "agora" e pelo painel do dia. */
+function ligarAcoes(caixa){
+  caixa.querySelectorAll("[data-abrir]").forEach(b =>
+    b.onclick = () => irParaPub(b.dataset.abrir));
+
+  caixa.querySelectorAll("[data-feito]").forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = "Salvando…";
+    // A publicação pode não estar em PUBS (a agenda alcança meses fora da
+    // janela de 45 dias do feed). O id basta para a API.
+    const alvo = PUBS.find(p => p.id === b.dataset.feito) || { id: b.dataset.feito };
+    if(await salvarTriagem(alvo, { status_triagem: "concluido" })) carregarAgenda(AG.mes);
+    else { b.disabled = false; b.textContent = "Providenciei"; }
+  });
+
+  caixa.querySelectorAll("[data-seguir]").forEach(b => b.onclick = async () => {
+    const ligado = b.getAttribute("aria-pressed") === "true";
+    b.disabled = true;
+    try{
+      await (ligado ? agenda.largar(b.dataset.seguir) : agenda.seguir(b.dataset.seguir));
+      carregarAgenda(AG.mes);
+    }catch(erro){ alert(erro.message); b.disabled = false; }
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
    Avisos no Telegram (Hermes) — Task 3
    O opt-in é por código de vida curta: a pessoa se identifica no
    painel com a senha dela e depois fala com o bot do Telegram dela.
@@ -895,6 +1120,7 @@ function tourConvite(){
 const TELAS = {
   painel:      [telaPainel,      "Painel",       "Situação do acervo nos últimos 45 dias"],
   publicacoes: [telaPublicacoes, "Publicações",  "Feed do DJEN com inteiro teor e contagem de prazo"],
+  agenda:      [telaAgenda,      "Minha agenda", "Calendário dos prazos sob sua responsabilidade"],
   prazos:      [telaPrazos,      "Prazos",       "Agenda de vencimentos e calculadora processual"],
   carteira:    [telaCarteira,    "Carteira",     "Processos do Município descobertos por nome da parte"],
   processo:    [telaProcesso,    "Processo",     "Histórico de publicações de um feito"],
@@ -916,4 +1142,12 @@ function atualizarContadores(){
   el("t-pub").textContent = ESTATISTICAS.sem_triagem || "";
   el("t-prz").textContent =
     PUBS.filter(p => p.prazo.restantes >= 0 && p.prazo.restantes <= 7).length || "";
+  // O contador de "Minha agenda" é o único que fala do USUÁRIO, não do acervo:
+  // fica visível de qualquer tela, e é o lembrete para quem não abriria a
+  // agenda por conta própria. Conta vencido também — some só quando resolver.
+  const meus = PUBS.filter(p => p.responsavel_id === USUARIO?.id
+    && p.status_triagem !== "concluido" && p.status_triagem !== "sem_providencia"
+    && p.prazo.restantes <= 3).length;
+  el("t-agd").textContent = meus || "";
+  el("t-agd").className = meus ? "tally crit" : "tally";
 }

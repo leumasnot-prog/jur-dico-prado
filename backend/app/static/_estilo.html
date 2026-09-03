@@ -75,6 +75,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav a .tally{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);
   background:var(--surface-2);padding:1px 6px;border-radius:20px}
 .nav a.on .tally{background:var(--surface);color:var(--accent-ink)}
+/* Badge do que e MEU e esta apertado: cor forte, visivel de qualquer tela.
+   E o unico contador que fala da pessoa, e nao do acervo. */
+.nav a .tally.crit{background:var(--crit);color:#fff;font-weight:700}
 
 .rail-foot{padding:12px 14px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
 .rail-foot b{color:var(--ink-2);font-weight:600}
@@ -319,6 +322,71 @@ tbody tr:last-child td{border-bottom:none}
   .nav a .tally{display:none}
   .view{padding:14px}
 }
+
+/* ═══ Agenda pessoal ═══════════════════════════════════════════════
+   Desenhada para quem tem dificuldade com prazo: a faixa "agora" vem
+   ANTES do calendário porque calendário é interface passiva — só serve
+   a quem lembra de abrir. A faixa responde "o que eu faço já", sem
+   exigir que a pessoa interprete um mês inteiro. */
+
+.agora{border:1px solid var(--crit);border-left-width:4px;border-radius:var(--radius);
+  background:var(--crit-soft);margin-bottom:15px;overflow:hidden}
+.agora.calmo{border-color:var(--ok);background:var(--ok-soft)}
+.agora-h{display:flex;align-items:center;gap:9px;padding:11px 15px;font-weight:600;
+  font-size:14px;color:var(--ink)}
+.agora-h .num{font:700 20px/1 var(--slab);color:var(--crit)}
+.agora.calmo .agora-h .num{color:var(--ok)}
+.agora-lista{display:flex;flex-direction:column;gap:1px;background:var(--line)}
+.agora-item{display:flex;align-items:center;gap:13px;padding:10px 15px;background:var(--surface);
+  flex-wrap:wrap}
+.agora-item .quando{font:600 12px/1.3 var(--sans);color:var(--crit);min-width:96px}
+.agora-item .oq{flex:1;min-width:210px}
+.agora-item .acoes{display:flex;gap:6px}
+
+.cal-topo{display:flex;align-items:center;justify-content:space-between;gap:11px;
+  padding:11px 15px;border-bottom:1px solid var(--line)}
+.cal-mes{font:600 15px/1 var(--slab);text-transform:capitalize}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);
+  padding:1px}
+.cal-h{background:var(--surface-2);text-align:center;padding:6px 0;font-size:10px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.cal-d{background:var(--surface);min-height:74px;padding:5px 6px;text-align:left;border:0;
+  font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:4px;position:relative}
+.cal-d:hover{background:var(--surface-2)}
+.cal-d:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;z-index:1}
+.cal-d .n{font:600 13px/1 var(--mono);color:var(--ink-2)}
+.cal-d.fora{background:var(--ground);cursor:default}
+.cal-d.fora .n{color:var(--line-2)}
+/* Dia sem expediente: listrado, não só apagado. A pessoa precisa VER que o
+   prazo não corre ali — é o que explica o pulo na contagem. */
+.cal-d.nao-util{background:repeating-linear-gradient(135deg,var(--surface) 0 6px,
+  var(--surface-2) 6px 12px)}
+.cal-d.nao-util .n{color:var(--muted)}
+.cal-d.hoje{box-shadow:inset 0 0 0 2px var(--accent)}
+.cal-d.hoje .n{color:var(--accent);font-weight:700}
+.cal-d.sel{background:var(--accent-soft)}
+.cal-pts{display:flex;flex-wrap:wrap;gap:3px}
+.cal-pt{width:100%;border-radius:3px;padding:2px 4px;font:600 10px/1.25 var(--sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-pt.vencido{background:var(--crit);color:#fff}
+.cal-pt.critico{background:var(--crit-soft);color:var(--crit);box-shadow:inset 0 0 0 1px var(--crit)}
+.cal-pt.atencao{background:var(--warn-soft);color:var(--warn)}
+.cal-pt.tranquilo{background:var(--ok-soft);color:var(--ok)}
+.cal-pt.feito{background:var(--surface-2);color:var(--muted);text-decoration:line-through}
+.cal-mais{font:600 10px/1 var(--sans);color:var(--muted);padding-left:2px}
+
+.dia-det{display:flex;flex-direction:column;gap:11px;padding:13px 15px}
+.dia-item{border:1px solid var(--line);border-radius:var(--radius);padding:11px 12px;
+  display:flex;flex-direction:column;gap:7px}
+.dia-item.vencido{border-color:var(--crit);background:var(--crit-soft)}
+.dia-item.critico{border-left:3px solid var(--crit)}
+.dia-item.atencao{border-left:3px solid var(--warn)}
+.dia-item.feito{opacity:.6}
+.legenda{display:flex;flex-wrap:wrap;gap:11px;padding:9px 15px;border-top:1px solid var(--line);
+  font-size:11px;color:var(--muted);align-items:center}
+.legenda i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;
+  vertical-align:-1px}
+@media(max-width:900px){.cal-d{min-height:58px}.cal-pt{font-size:0;padding:3px}}
 </style>
 <style>
 /* ── Login ─────────────────────────────────────────────────────── */

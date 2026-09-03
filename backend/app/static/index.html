@@ -81,6 +81,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav a .tally{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);
   background:var(--surface-2);padding:1px 6px;border-radius:20px}
 .nav a.on .tally{background:var(--surface);color:var(--accent-ink)}
+/* Badge do que e MEU e esta apertado: cor forte, visivel de qualquer tela.
+   E o unico contador que fala da pessoa, e nao do acervo. */
+.nav a .tally.crit{background:var(--crit);color:#fff;font-weight:700}
 
 .rail-foot{padding:12px 14px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
 .rail-foot b{color:var(--ink-2);font-weight:600}
@@ -325,6 +328,71 @@ tbody tr:last-child td{border-bottom:none}
   .nav a .tally{display:none}
   .view{padding:14px}
 }
+
+/* ═══ Agenda pessoal ═══════════════════════════════════════════════
+   Desenhada para quem tem dificuldade com prazo: a faixa "agora" vem
+   ANTES do calendário porque calendário é interface passiva — só serve
+   a quem lembra de abrir. A faixa responde "o que eu faço já", sem
+   exigir que a pessoa interprete um mês inteiro. */
+
+.agora{border:1px solid var(--crit);border-left-width:4px;border-radius:var(--radius);
+  background:var(--crit-soft);margin-bottom:15px;overflow:hidden}
+.agora.calmo{border-color:var(--ok);background:var(--ok-soft)}
+.agora-h{display:flex;align-items:center;gap:9px;padding:11px 15px;font-weight:600;
+  font-size:14px;color:var(--ink)}
+.agora-h .num{font:700 20px/1 var(--slab);color:var(--crit)}
+.agora.calmo .agora-h .num{color:var(--ok)}
+.agora-lista{display:flex;flex-direction:column;gap:1px;background:var(--line)}
+.agora-item{display:flex;align-items:center;gap:13px;padding:10px 15px;background:var(--surface);
+  flex-wrap:wrap}
+.agora-item .quando{font:600 12px/1.3 var(--sans);color:var(--crit);min-width:96px}
+.agora-item .oq{flex:1;min-width:210px}
+.agora-item .acoes{display:flex;gap:6px}
+
+.cal-topo{display:flex;align-items:center;justify-content:space-between;gap:11px;
+  padding:11px 15px;border-bottom:1px solid var(--line)}
+.cal-mes{font:600 15px/1 var(--slab);text-transform:capitalize}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line);
+  padding:1px}
+.cal-h{background:var(--surface-2);text-align:center;padding:6px 0;font-size:10px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.cal-d{background:var(--surface);min-height:74px;padding:5px 6px;text-align:left;border:0;
+  font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:4px;position:relative}
+.cal-d:hover{background:var(--surface-2)}
+.cal-d:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;z-index:1}
+.cal-d .n{font:600 13px/1 var(--mono);color:var(--ink-2)}
+.cal-d.fora{background:var(--ground);cursor:default}
+.cal-d.fora .n{color:var(--line-2)}
+/* Dia sem expediente: listrado, não só apagado. A pessoa precisa VER que o
+   prazo não corre ali — é o que explica o pulo na contagem. */
+.cal-d.nao-util{background:repeating-linear-gradient(135deg,var(--surface) 0 6px,
+  var(--surface-2) 6px 12px)}
+.cal-d.nao-util .n{color:var(--muted)}
+.cal-d.hoje{box-shadow:inset 0 0 0 2px var(--accent)}
+.cal-d.hoje .n{color:var(--accent);font-weight:700}
+.cal-d.sel{background:var(--accent-soft)}
+.cal-pts{display:flex;flex-wrap:wrap;gap:3px}
+.cal-pt{width:100%;border-radius:3px;padding:2px 4px;font:600 10px/1.25 var(--sans);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-pt.vencido{background:var(--crit);color:#fff}
+.cal-pt.critico{background:var(--crit-soft);color:var(--crit);box-shadow:inset 0 0 0 1px var(--crit)}
+.cal-pt.atencao{background:var(--warn-soft);color:var(--warn)}
+.cal-pt.tranquilo{background:var(--ok-soft);color:var(--ok)}
+.cal-pt.feito{background:var(--surface-2);color:var(--muted);text-decoration:line-through}
+.cal-mais{font:600 10px/1 var(--sans);color:var(--muted);padding-left:2px}
+
+.dia-det{display:flex;flex-direction:column;gap:11px;padding:13px 15px}
+.dia-item{border:1px solid var(--line);border-radius:var(--radius);padding:11px 12px;
+  display:flex;flex-direction:column;gap:7px}
+.dia-item.vencido{border-color:var(--crit);background:var(--crit-soft)}
+.dia-item.critico{border-left:3px solid var(--crit)}
+.dia-item.atencao{border-left:3px solid var(--warn)}
+.dia-item.feito{opacity:.6}
+.legenda{display:flex;flex-wrap:wrap;gap:11px;padding:9px 15px;border-top:1px solid var(--line);
+  font-size:11px;color:var(--muted);align-items:center}
+.legenda i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;
+  vertical-align:-1px}
+@media(max-width:900px){.cal-d{min-height:58px}.cal-pt{font-size:0;padding:3px}}
 </style>
 <style>
 /* ── Login ─────────────────────────────────────────────────────── */
@@ -357,7 +425,7 @@ tbody tr:last-child td{border-bottom:none}
 </head>
 <body>
 <script>
-const SHELL = "<div class=\"app\">\n  <aside class=\"rail\">\n    <div class=\"brand\">\n      <div class=\"crest\">PR</div>\n      <div>\n        <div class=\"brand-t\">Departamento Jurídico</div>\n        <div class=\"brand-s\">Pradópolis · SP</div>\n      </div>\n    </div>\n    <nav class=\"nav\" id=\"nav\">\n      <div class=\"nav-lbl\">Acompanhamento</div>\n      <a href=\"#painel\" data-v=\"painel\"><span class=\"ic\">◱</span>Painel</a>\n      <a href=\"#publicacoes\" data-v=\"publicacoes\"><span class=\"ic\">▤</span>Publicações<span class=\"tally\" id=\"t-pub\"></span></a>\n      <a href=\"#prazos\" data-v=\"prazos\"><span class=\"ic\">◷</span>Prazos<span class=\"tally\" id=\"t-prz\"></span></a>\n      <div class=\"nav-lbl\">Acervo</div>\n      <a href=\"#carteira\" data-v=\"carteira\"><span class=\"ic\">▦</span>Carteira<span class=\"tally\" id=\"t-car\"></span></a>\n      <a href=\"#processo\" data-v=\"processo\"><span class=\"ic\">▣</span>Processo</a>\n      <div class=\"nav-lbl\">Sistema</div>\n      <a href=\"#avisos\" data-v=\"avisos\"><span class=\"ic\">◒</span>Avisos no Telegram</a>\n      <a href=\"#fontes\" data-v=\"fontes\"><span class=\"ic\">◈</span>Fontes e limites</a>\n    </nav>\n    <div class=\"rail-foot\">\n      Fonte: <b>DJEN/Comunica</b> + <b>DataJud CNJ</b><br>\n      Acervo no Neon PostgreSQL · toda ação é auditada\n    </div>\n  </aside>\n\n  <div class=\"main\">\n    <header class=\"topbar\">\n      <div>\n        <h1 id=\"vtitle\">Painel</h1>\n        <div class=\"sub\" id=\"vsub\"></div>\n      </div>\n      <div class=\"spacer\"></div>\n      <div class=\"sweep\"><span class=\"dot\"></span><span id=\"sweep-t\"></span></div>\n      <span class=\"usuario-chip\" id=\"quem\"></span>\n      <button class=\"btn sm\" id=\"varrer\">Varrer o diário</button>\n      <button class=\"btn sm\" id=\"tour\">Como usar</button>\n      <button class=\"btn sm\" id=\"theme\">Tema</button>\n      <button class=\"btn sm\" id=\"sair\">Sair</button>\n    </header>\n    <main class=\"view\" id=\"view\"></main>\n  </div>\n</div>\n\n";
+const SHELL = "<div class=\"app\">\n  <aside class=\"rail\">\n    <div class=\"brand\">\n      <div class=\"crest\">PR</div>\n      <div>\n        <div class=\"brand-t\">Departamento Jurídico</div>\n        <div class=\"brand-s\">Pradópolis · SP</div>\n      </div>\n    </div>\n    <nav class=\"nav\" id=\"nav\">\n      <div class=\"nav-lbl\">Acompanhamento</div>\n      <a href=\"#painel\" data-v=\"painel\"><span class=\"ic\">◱</span>Painel</a>\n      <a href=\"#publicacoes\" data-v=\"publicacoes\"><span class=\"ic\">▤</span>Publicações<span class=\"tally\" id=\"t-pub\"></span></a>\n      <a href=\"#agenda\" data-v=\"agenda\"><span class=\"ic\">▧</span>Minha agenda<span class=\"tally\" id=\"t-agd\"></span></a>\n      <a href=\"#prazos\" data-v=\"prazos\"><span class=\"ic\">◷</span>Prazos<span class=\"tally\" id=\"t-prz\"></span></a>\n      <div class=\"nav-lbl\">Acervo</div>\n      <a href=\"#carteira\" data-v=\"carteira\"><span class=\"ic\">▦</span>Carteira<span class=\"tally\" id=\"t-car\"></span></a>\n      <a href=\"#processo\" data-v=\"processo\"><span class=\"ic\">▣</span>Processo</a>\n      <div class=\"nav-lbl\">Sistema</div>\n      <a href=\"#avisos\" data-v=\"avisos\"><span class=\"ic\">◒</span>Avisos no Telegram</a>\n      <a href=\"#fontes\" data-v=\"fontes\"><span class=\"ic\">◈</span>Fontes e limites</a>\n    </nav>\n    <div class=\"rail-foot\">\n      Fonte: <b>DJEN/Comunica</b> + <b>DataJud CNJ</b><br>\n      Acervo no Neon PostgreSQL · toda ação é auditada\n    </div>\n  </aside>\n\n  <div class=\"main\">\n    <header class=\"topbar\">\n      <div>\n        <h1 id=\"vtitle\">Painel</h1>\n        <div class=\"sub\" id=\"vsub\"></div>\n      </div>\n      <div class=\"spacer\"></div>\n      <div class=\"sweep\"><span class=\"dot\"></span><span id=\"sweep-t\"></span></div>\n      <span class=\"usuario-chip\" id=\"quem\"></span>\n      <button class=\"btn sm\" id=\"varrer\">Varrer o diário</button>\n      <button class=\"btn sm\" id=\"tour\">Como usar</button>\n      <button class=\"btn sm\" id=\"theme\">Tema</button>\n      <button class=\"btn sm\" id=\"sair\">Sair</button>\n    </header>\n    <main class=\"view\" id=\"view\"></main>\n  </div>\n</div>\n\n";
 const iso = d => d.toISOString().slice(0,10);
 const parseD = s => { const [y,m,d] = s.slice(0,10).split("-").map(Number); return new Date(Date.UTC(y,m-1,d)); };
 const addD = (d,n) => new Date(d.getTime()+n*864e5);
@@ -684,6 +752,20 @@ const hermes = {
   ver:         () => api("/hermes/vinculo"),
   pedirCodigo: () => api("/hermes/vinculo/codigo", { method: "POST" }),
   desvincular: () => api("/hermes/vinculo", { method: "DELETE" }),
+};
+
+
+/* ── Agenda pessoal e acompanhamento ─────────────────────────────── */
+
+const agenda = {
+  mes:        (m) => api(`/acervo/agenda${m ? `?mes=${m}` : ""}`),
+  pendencias: ()  => api("/acervo/pendencias?limite_dias_uteis=3"),
+  equipe:     ()  => api("/acervo/equipe"),
+  seguir:     (numero, dias = 3) =>
+    api(`/acervo/processos/${encodeURIComponent(numero)}/acompanhar`,
+        { method: "PUT", body: JSON.stringify({ dias_antecedencia: dias }) }),
+  largar:     (numero) =>
+    api(`/acervo/processos/${encodeURIComponent(numero)}/acompanhar`, { method: "DELETE" }),
 };
 
 const EXPLICACOES = {
@@ -1335,6 +1417,231 @@ function telaFontes(){
 
 
 /* ═══════════════════════════════════════════════════════════════
+   Minha agenda — calendário pessoal
+
+   PRINCÍPIO: calendário é interface PASSIVA. Só ajuda quem lembra de
+   abrir, e quem tem dificuldade com prazo é exatamente quem não lembra.
+   Por isso a tela tem três camadas, nesta ordem de peso visual:
+
+     1. A faixa "agora"  — decisão, não consulta. Vem antes de tudo.
+     2. A grade do mês   — planejamento, e o feriado explicando a contagem.
+     3. "Me avisa deste" — o empurrão, que não depende de abrir a tela.
+
+   O estado vazio da faixa é uma RECOMPENSA ("você está em dia"), não um
+   "nada encontrado": para quem teme a tela de prazos, o alívio importa.
+   ═══════════════════════════════════════════════════════════════ */
+
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho",
+               "julho","agosto","setembro","outubro","novembro","dezembro"];
+const DIAS_CURTOS = ["dom","seg","ter","qua","qui","sex","sáb"];
+const DIAS_LONGOS = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+const SEV_TXT = { vencido:"Vencido", critico:"Crítico", atencao:"Atenção",
+                  tranquilo:"No prazo", feito:"Providenciado" };
+
+let AG = { mes:null, dados:null, pendencias:[], dia:null };
+
+const mesAtual = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+};
+
+function mesVizinho(m, passo){
+  const [a, mm] = m.split("-").map(Number);
+  const d = new Date(Date.UTC(a, mm - 1 + passo, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}`;
+}
+
+/** Abre a publicação no leitor, pelo mesmo caminho das outras telas. */
+const irParaPub = id => { sel = id; location.hash = "#publicacoes"; };
+
+const emDiasUteis = n => n < 0
+  ? `venceu há ${-n} ${-n === 1 ? "dia útil" : "dias úteis"}`
+  : n === 0 ? "vence hoje"
+  : `faltam ${n} ${n === 1 ? "dia útil" : "dias úteis"}`;
+
+function telaAgenda(){
+  view.innerHTML = `
+    <div id="ag-agora"></div>
+    <div class="split">
+      <div class="card">
+        <div class="cal-topo">
+          <button class="btn sm" id="ag-ant" aria-label="Mês anterior">‹</button>
+          <div class="cal-mes" id="ag-mes">—</div>
+          <button class="btn sm" id="ag-prox" aria-label="Próximo mês">›</button>
+        </div>
+        <div id="ag-grade"><div class="empty"><strong>Carregando…</strong></div></div>
+        <div class="legenda">
+          <span><i style="background:var(--crit)"></i>Vencido</span>
+          <span><i style="background:var(--crit-soft);box-shadow:inset 0 0 0 1px var(--crit)"></i>Até 3 dias úteis</span>
+          <span><i style="background:var(--warn-soft)"></i>Até 7</span>
+          <span><i style="background:var(--ok-soft)"></i>Mais folga</span>
+          <span><i style="background:repeating-linear-gradient(135deg,var(--surface) 0 3px,var(--surface-2) 3px 6px)"></i>Sem expediente — o prazo não corre</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3 id="ag-dia-t">Selecione um dia</h3></div>
+        <div id="ag-dia"><div class="empty"><strong>Clique num dia do calendário</strong>
+          <span>Os prazos daquele dia aparecem aqui, com o que fazer em cada um.</span></div></div>
+      </div>
+    </div>`;
+
+  el("ag-ant").onclick  = () => carregarAgenda(mesVizinho(AG.mes, -1));
+  el("ag-prox").onclick = () => carregarAgenda(mesVizinho(AG.mes, +1));
+  carregarAgenda(AG.mes || mesAtual());
+}
+
+async function carregarAgenda(mes){
+  AG.mes = mes;
+  el("ag-mes").textContent = `${MESES[Number(mes.split("-")[1]) - 1]} ${mes.split("-")[0]}`;
+  try{
+    const [dados, pend] = await Promise.all([agenda.mes(mes), agenda.pendencias()]);
+    AG.dados = dados; AG.pendencias = pend;
+  }catch(erro){
+    el("ag-grade").innerHTML = `<div class="empty"><strong>Não foi possível carregar</strong>
+      <span>${esc(erro.message)}</span></div>`;
+    return;
+  }
+  pintarAgora();
+  pintarGrade();
+  if(AG.dia) pintarDia(AG.dia);
+}
+
+/* ── Camada 1: a faixa que responde "o que eu faço agora" ────────── */
+
+function pintarAgora(){
+  const itens = AG.pendencias, caixa = el("ag-agora");
+  if(!itens.length){
+    caixa.innerHTML = `<div class="agora calmo"><div class="agora-h">
+      <span class="num">✓</span>
+      <span>Nenhum prazo apertado. Você está em dia.</span></div></div>`;
+    return;
+  }
+  const vencidos = itens.filter(i => i.severidade === "vencido").length;
+  caixa.innerHTML = `<div class="agora">
+    <div class="agora-h"><span class="num">${itens.length}</span>
+      <span>${itens.length === 1 ? "prazo exige" : "prazos exigem"} decisão hoje${
+        vencidos ? ` — <b>${vencidos} já ${vencidos === 1 ? "venceu" : "venceram"}</b>` : ""}</span></div>
+    <div class="agora-lista">${itens.map(i => `
+      <div class="agora-item">
+        <div class="quando">${emDiasUteis(i.dias_uteis)}</div>
+        <div class="oq">
+          <div class="cell-num">${esc(i.numero)} <span class="tag">${esc(i.tribunal)}</span></div>
+          <div class="cell-sub">${esc(i.ato || "—")} · vence ${fmtD(i.vencimento)}</div>
+        </div>
+        <div class="acoes">
+          <button class="btn sm" data-abrir="${esc(i.id)}">Ver</button>
+          <button class="btn sm" data-feito="${esc(i.id)}">Providenciei</button>
+        </div>
+      </div>`).join("")}</div></div>`;
+  ligarAcoes(caixa);
+}
+
+/* ── Camada 2: a grade do mês ────────────────────────────────────── */
+
+function pintarGrade(){
+  const { dias, nao_uteis, hoje: hojeIso, mes } = AG.dados;
+  const naoUteis = new Set(nao_uteis);
+  const [ano, mm] = mes.split("-").map(Number);
+  const vazios = new Date(Date.UTC(ano, mm - 1, 1)).getUTCDay();
+  const ultimoDia = new Date(Date.UTC(ano, mm, 0)).getUTCDate();
+
+  let html = DIAS_CURTOS.map(d => `<div class="cal-h">${d}</div>`).join("");
+  for(let i = 0; i < vazios; i++) html += `<div class="cal-d fora"></div>`;
+
+  for(let d = 1; d <= ultimoDia; d++){
+    const iso = `${ano}-${String(mm).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const itens = dias[iso] || [];
+    const cls = ["cal-d"];
+    if(naoUteis.has(iso)) cls.push("nao-util");
+    if(iso === hojeIso)   cls.push("hoje");
+    if(iso === AG.dia)    cls.push("sel");
+    const mostra = itens.slice(0, 2), resto = itens.length - mostra.length;
+    html += `<button class="${cls.join(" ")}" data-dia="${iso}"
+        aria-label="dia ${d}, ${itens.length} ${itens.length === 1 ? "prazo" : "prazos"}${
+          naoUteis.has(iso) ? ", sem expediente forense" : ""}">
+      <span class="n">${d}</span>
+      <span class="cal-pts">${mostra.map(i =>
+        `<span class="cal-pt ${i.severidade}">${esc(i.ato || i.tribunal)}</span>`).join("")}${
+        resto > 0 ? `<span class="cal-mais">+${resto}</span>` : ""}</span>
+    </button>`;
+  }
+  el("ag-grade").innerHTML = `<div class="cal">${html}</div>`;
+  el("ag-grade").querySelectorAll("[data-dia]").forEach(b =>
+    b.onclick = () => pintarDia(b.dataset.dia));
+}
+
+/* ── Camada 3: o dia aberto, com "me avisa deste" ────────────────── */
+
+function pintarDia(iso){
+  AG.dia = iso;
+  pintarGrade();
+  const itens = AG.dados.dias[iso] || [];
+  const semExpediente = AG.dados.nao_uteis.includes(iso);
+  el("ag-dia-t").textContent = `${DIAS_LONGOS[parseD(iso).getUTCDay()]}, ${fmtD(iso)}`;
+
+  if(!itens.length){
+    el("ag-dia").innerHTML = `<div class="empty">
+      <strong>Nenhum prazo seu neste dia</strong>
+      <span>${semExpediente
+        ? "E não há expediente forense nesta data — o prazo não corre."
+        : "Dia livre na sua agenda."}</span></div>`;
+    return;
+  }
+
+  const pilula = s => s === "vencido" || s === "critico" ? "crit"
+                    : s === "atencao" ? "warn" : s === "feito" ? "neutral" : "ok";
+
+  el("ag-dia").innerHTML = `<div class="dia-det">
+    ${semExpediente ? `<div class="note"><b>Sem expediente forense nesta data.</b>
+      O cálculo empurra para o próximo dia útil qualquer prazo que cairia aqui.</div>` : ""}
+    ${itens.map(i => `
+      <div class="dia-item ${i.severidade}">
+        <div>
+          <div class="cell-num">${esc(i.numero)} <span class="tag">${esc(i.tribunal)}</span>
+            <span class="pill ${pilula(i.severidade)}">${SEV_TXT[i.severidade]}</span></div>
+          <div class="cell-sub">${esc(i.ato || "—")} · ${esc(titulo(i.classe || ""))}</div>
+        </div>
+        <div class="cell-sub">${emDiasUteis(i.dias_uteis).replace(/^./, c => c.toUpperCase())}${
+          i.meu ? "" : " · <i>processo que você acompanha</i>"}</div>
+        <div class="acoes">
+          <button class="btn sm" data-abrir="${esc(i.id)}">Abrir</button>
+          ${i.severidade !== "feito"
+            ? `<button class="btn sm" data-feito="${esc(i.id)}">Providenciei</button>` : ""}
+          <button class="btn sm" data-seguir="${esc(i.numero_processo)}"
+            aria-pressed="${i.acompanhado}">
+            ${i.acompanhado ? "🔔 Avisando" : "🔕 Me avisa deste"}</button>
+        </div>
+      </div>`).join("")}
+  </div>`;
+  ligarAcoes(el("ag-dia"));
+}
+
+/** Ações compartilhadas pela faixa "agora" e pelo painel do dia. */
+function ligarAcoes(caixa){
+  caixa.querySelectorAll("[data-abrir]").forEach(b =>
+    b.onclick = () => irParaPub(b.dataset.abrir));
+
+  caixa.querySelectorAll("[data-feito]").forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = "Salvando…";
+    // A publicação pode não estar em PUBS (a agenda alcança meses fora da
+    // janela de 45 dias do feed). O id basta para a API.
+    const alvo = PUBS.find(p => p.id === b.dataset.feito) || { id: b.dataset.feito };
+    if(await salvarTriagem(alvo, { status_triagem: "concluido" })) carregarAgenda(AG.mes);
+    else { b.disabled = false; b.textContent = "Providenciei"; }
+  });
+
+  caixa.querySelectorAll("[data-seguir]").forEach(b => b.onclick = async () => {
+    const ligado = b.getAttribute("aria-pressed") === "true";
+    b.disabled = true;
+    try{
+      await (ligado ? agenda.largar(b.dataset.seguir) : agenda.seguir(b.dataset.seguir));
+      carregarAgenda(AG.mes);
+    }catch(erro){ alert(erro.message); b.disabled = false; }
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
    Avisos no Telegram (Hermes) — Task 3
    O opt-in é por código de vida curta: a pessoa se identifica no
    painel com a senha dela e depois fala com o bot do Telegram dela.
@@ -1583,6 +1890,7 @@ function tourConvite(){
 const TELAS = {
   painel:      [telaPainel,      "Painel",       "Situação do acervo nos últimos 45 dias"],
   publicacoes: [telaPublicacoes, "Publicações",  "Feed do DJEN com inteiro teor e contagem de prazo"],
+  agenda:      [telaAgenda,      "Minha agenda", "Calendário dos prazos sob sua responsabilidade"],
   prazos:      [telaPrazos,      "Prazos",       "Agenda de vencimentos e calculadora processual"],
   carteira:    [telaCarteira,    "Carteira",     "Processos do Município descobertos por nome da parte"],
   processo:    [telaProcesso,    "Processo",     "Histórico de publicações de um feito"],
@@ -1604,6 +1912,14 @@ function atualizarContadores(){
   el("t-pub").textContent = ESTATISTICAS.sem_triagem || "";
   el("t-prz").textContent =
     PUBS.filter(p => p.prazo.restantes >= 0 && p.prazo.restantes <= 7).length || "";
+  // O contador de "Minha agenda" é o único que fala do USUÁRIO, não do acervo:
+  // fica visível de qualquer tela, e é o lembrete para quem não abriria a
+  // agenda por conta própria. Conta vencido também — some só quando resolver.
+  const meus = PUBS.filter(p => p.responsavel_id === USUARIO?.id
+    && p.status_triagem !== "concluido" && p.status_triagem !== "sem_providencia"
+    && p.prazo.restantes <= 3).length;
+  el("t-agd").textContent = meus || "";
+  el("t-agd").className = meus ? "tally crit" : "tally";
 }
 
 /* ═══════════════════════════════════════════════════════════════

@@ -38,7 +38,15 @@ from app.hermes.formatador import (
     montar_resumo_diario,
 )
 from app.hermes.telegram import ClienteTelegram, TelegramErro
-from app.models import EnvioHermes, Processo, Publicacao, Triagem, Usuario, VinculoTelegram
+from app.models import (
+    Acompanhamento,
+    EnvioHermes,
+    Processo,
+    Publicacao,
+    Triagem,
+    Usuario,
+    VinculoTelegram,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -137,14 +145,16 @@ async def _enviar(
 
 # ── Coleta ────────────────────────────────────────────────────────────────
 
-async def coletar_criticos(sessao: AsyncSession) -> list[ItemPrazo]:
+async def coletar_criticos(
+    sessao: AsyncSession, limite: int | None = None
+) -> list[ItemPrazo]:
     """Publicações que merecem alerta: prazo curto OU palavra de urgência.
 
     Vencidas entram também, limitadas a uma semana para trás: prazo perdido é
     exatamente o que não pode passar em silêncio, mas o acervo antigo inteiro
     não pode ressurgir num dia.
     """
-    limite = settings.hermes_dias_criticos
+    limite = settings.hermes_dias_criticos if limite is None else limite
     h = hoje()
     janela_inicio = h - datetime.timedelta(days=7)
     # A folga em dias corridos cobre feriados: 3 dias úteis podem levar 6 de
@@ -176,6 +186,7 @@ async def coletar_criticos(sessao: AsyncSession) -> list[ItemPrazo]:
         itens.append(ItemPrazo(
             publicacao_id=pub.id,
             numero=formatado or pub.numero_processo,
+            numero_processo=pub.numero_processo,
             tribunal=pub.tribunal,
             ato=pub.ato_inferido or "Manifestação",
             rito=pub.rito_inferido or "comum",
@@ -207,6 +218,35 @@ async def coletar_resumo(sessao: AsyncSession) -> dict[str, Any]:
     return {"criticos": criticos, "urgentes": urgentes, "sem_triagem": int(sem_triagem),
             "novas_por_tribunal": {t: int(q) for t, q in por_tribunal},
             "total_processos": int(total)}
+
+
+async def coletar_para_acompanhantes(sessao: AsyncSession) -> list[tuple[ItemPrazo, int]]:
+    """Pares (item, usuario_id) de quem marcou "me avisa deste processo".
+
+    A antecedência é de cada pessoa, não do sistema: quem se atrapalha com prazo
+    pede 7 dias e passa a ser cobrado bem antes do corte padrão de 3. Por isso a
+    consulta é feita com a MAIOR antecedência pedida por alguém, e o corte fino
+    acontece depois, por acompanhante.
+    """
+    acompanhamentos = list(await sessao.scalars(select(Acompanhamento)))
+    if not acompanhamentos:
+        return []
+
+    por_processo: dict[str, list[tuple[int, int]]] = {}
+    maior = settings.hermes_dias_criticos
+    for a in acompanhamentos:
+        por_processo.setdefault(a.numero_processo, []).append(
+            (a.usuario_id, a.dias_antecedencia))
+        maior = max(maior, a.dias_antecedencia)
+
+    saida: list[tuple[ItemPrazo, int]] = []
+    for item in await coletar_criticos(sessao, limite=maior):
+        for usuario_id, dias in por_processo.get(item.numero_processo, []):
+            # Quem já é o responsável recebe pelo caminho normal; mandar de novo
+            # aqui seria a mesma pessoa avisada duas vezes do mesmo prazo.
+            if usuario_id != item.responsavel_id and item.dias_restantes <= dias:
+                saida.append((item, usuario_id))
+    return saida
 
 
 # ── Rotinas agendadas ─────────────────────────────────────────────────────
@@ -252,28 +292,38 @@ async def varrer_alertas(sessao: AsyncSession, cliente: ClienteTelegram | None =
             select(VinculoTelegram).where(VinculoTelegram.ativo.is_(True),
                                           VinculoTelegram.telegram_chat_id.is_not(None))))
     }
-    nomes: dict[int, str] = {}
-    if vinculos:
-        achados = await sessao.scalars(select(Usuario).where(Usuario.id.in_(list(vinculos))))
-        nomes = {u.id: u.nome for u in achados}
+    # Nomes de TODA a equipe, não só de quem vinculou o Telegram: o aviso de
+    # grupo precisa dizer de quem é o processo mesmo quando a pessoa ainda não
+    # tem canal privado.
+    nomes = {u.id: u.nome for u in
+             await sessao.scalars(select(Usuario).where(Usuario.ativo.is_(True)))}
 
     enviados = 0
     for item in itens:
         vinculo = vinculos.get(item.responsavel_id) if item.responsavel_id else None
         if vinculo is None:
-            # Sem responsável ou sem opt-in: o aviso vai ao grupo, porque o pior
-            # destino de um prazo crítico é destino nenhum. Sem nomes, o texto de
-            # grupo já é seguro por construção.
+            # Sem responsável OU com responsável que ainda não vinculou o
+            # Telegram: o aviso vai ao grupo, porque o pior destino de um prazo
+            # crítico é destino nenhum.
+            #
+            # Os dois casos NÃO são o mesmo recado, e confundi-los custa caro:
+            # "sem responsável atribuído" num processo que tem dono faz o grupo
+            # ler "ninguém está cuidando disso" quando alguém está. Dizer o nome
+            # de quem é permite cutucar a pessoa certa — e é nome de colega de
+            # equipe, não de terceiro, então não toca a regra de LGPD.
             if not settings.telegram_chat_id_grupo:
                 continue
+            dono = nomes.get(item.responsavel_id) if item.responsavel_id else None
+            rotulo = (f"{dono} — sem Telegram vinculado" if dono
+                      else "sem responsável atribuído")
             texto = montar_alerta_critico(
-                item=item, nome_procurador="sem responsável atribuído",
-                base_url=settings.painel_base_url)
+                item=item, nome_procurador=rotulo, base_url=settings.painel_base_url)
             ok = await _enviar(
                 sessao, cliente, chave=f"alerta:{item.publicacao_id}:grupo",
-                tipo="alerta_sem_dono", chat_id=settings.telegram_chat_id_grupo,
+                tipo=("alerta_sem_canal" if dono else "alerta_sem_dono"),
+                chat_id=settings.telegram_chat_id_grupo,
                 texto=texto, botoes=botoes_alerta(item.publicacao_id, settings.painel_base_url),
-                publicacao_id=item.publicacao_id)
+                usuario_id=item.responsavel_id, publicacao_id=item.publicacao_id)
         else:
             assert vinculo.telegram_chat_id is not None
             texto = montar_alerta_critico(
@@ -286,6 +336,24 @@ async def varrer_alertas(sessao: AsyncSession, cliente: ClienteTelegram | None =
                 botoes=botoes_alerta(item.publicacao_id, settings.painel_base_url),
                 usuario_id=vinculo.usuario_id, publicacao_id=item.publicacao_id)
         enviados += int(ok)
+
+    # Quem marcou "me avisa deste processo" sem ser o responsável. Chave de
+    # deduplicação própria (`:acomp:`): a mesma publicação pode legitimamente
+    # gerar um alerta para o responsável e outro para quem acompanha.
+    for item, usuario_id in await coletar_para_acompanhantes(sessao):
+        vinculo = vinculos.get(usuario_id)
+        if vinculo is None or vinculo.telegram_chat_id is None:
+            continue
+        texto = montar_alerta_critico(
+            item=item, nome_procurador=nomes.get(usuario_id, "você"),
+            base_url=settings.painel_base_url, acompanhando=True)
+        ok = await _enviar(
+            sessao, cliente, chave=f"alerta:{item.publicacao_id}:acomp:{usuario_id}",
+            tipo="alerta_acompanhado", chat_id=vinculo.telegram_chat_id, texto=texto,
+            botoes=botoes_alerta(item.publicacao_id, settings.painel_base_url),
+            usuario_id=usuario_id, publicacao_id=item.publicacao_id)
+        enviados += int(ok)
+
     return enviados
 
 

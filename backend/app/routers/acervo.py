@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.config import hoje
+from app.core.config import hoje, settings
 from app.core.db import get_session
 from app.core.seguranca import (
     PODE_ATRIBUIR,
@@ -21,7 +21,14 @@ from app.core.seguranca import (
     requer_papel,
     usuario_atual,
 )
-from app.models import Processo, Publicacao, StatusTriagem, Triagem, Usuario
+from app.models import (
+    Acompanhamento,
+    Processo,
+    Publicacao,
+    StatusTriagem,
+    Triagem,
+    Usuario,
+)
 from app.services import acervo as servico
 from app.services.prazo_cache import prazo_completo
 
@@ -251,3 +258,229 @@ async def estatisticas(
     return {"processos": total_proc or 0, "publicacoes": total_pub or 0,
             "sem_triagem": sem_triagem or 0, "prazos_criticos": criticos or 0,
             "vencidos_sem_providencia": vencidos or 0}
+
+
+# ── Agenda pessoal: o calendário do mês ───────────────────────────────────
+
+def _severidade(dias_uteis: int, status: str) -> str:
+    """Uma palavra que a interface usa para decidir cor E texto.
+
+    Sai do backend, não da tela, para que o Hermes e o painel classifiquem a
+    mesma coisa do mesmo jeito — urgência divergente entre os dois canais é
+    exatamente o que faz a pessoa parar de confiar nos dois.
+    """
+    if status in ("concluido", "sem_providencia"):
+        return "feito"
+    if dias_uteis < 0:
+        return "vencido"
+    if dias_uteis <= 3:
+        return "critico"
+    if dias_uteis <= 7:
+        return "atencao"
+    return "tranquilo"
+
+
+@router.get("/agenda", summary="Calendário do mês, pessoal")
+async def agenda(
+    usuario: Annotated[Usuario, Depends(usuario_atual)],
+    sessao: Annotated[AsyncSession, Depends(get_session)],
+    mes: str | None = Query(default=None, description="AAAA-MM; omitido = mês corrente"),
+    de_todos: bool = Query(default=False, description="Chefia: ver a agenda inteira"),
+) -> dict[str, Any]:
+    """O que ESTA pessoa tem para fazer, dia a dia.
+
+    Traz também os dias não úteis do mês: é o que permite a tela mostrar o
+    feriado e explicar por que um prazo pulou de uma data para outra. Sem isso
+    o calendário mente por omissão.
+    """
+    from mcp_juridico_brasil.prazo.calendario import eh_dia_util
+
+    from app.hermes.agendador import _dias_uteis_ate
+
+    h = hoje()
+    try:
+        ano, mm = (int(x) for x in (mes or h.strftime("%Y-%m")).split("-"))
+        primeiro = datetime.date(ano, mm, 1)
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            "Mês inválido. Use o formato AAAA-MM.") from exc
+    ultimo = (primeiro.replace(day=28) + datetime.timedelta(days=4)).replace(day=1) \
+        - datetime.timedelta(days=1)
+
+    acompanhados = set((await sessao.scalars(
+        select(Acompanhamento.numero_processo)
+        .where(Acompanhamento.usuario_id == usuario.id))).all())
+
+    q = (select(Publicacao, Triagem, Processo.numero_formatado)
+         .join(Processo, Processo.numero_processo == Publicacao.numero_processo)
+         .outerjoin(Triagem, Triagem.publicacao_id == Publicacao.id)
+         .where(Publicacao.vencimento.between(primeiro, ultimo)))
+    q = _restringe_sigilo(q, usuario)
+    if not de_todos:
+        # Meu = atribuído a mim OU processo que eu escolhi acompanhar.
+        meu = Triagem.responsavel_id == usuario.id
+        if acompanhados:
+            meu = meu | Publicacao.numero_processo.in_(acompanhados)
+        q = q.where(meu)
+
+    dias: dict[str, list[dict[str, Any]]] = {}
+    for pub, tri, formatado in await sessao.execute(q.order_by(Publicacao.vencimento)):
+        assert pub.vencimento is not None
+        estado = tri.status if tri else "novo"
+        uteis = _dias_uteis_ate(pub.vencimento)
+        dias.setdefault(pub.vencimento.isoformat(), []).append({
+            "id": pub.id,
+            "numero": formatado or pub.numero_processo,
+            "numero_processo": pub.numero_processo,
+            "tribunal": pub.tribunal,
+            "classe": pub.classe,
+            "ato": pub.ato_inferido,
+            "rito": pub.rito_inferido,
+            "vencimento": pub.vencimento.isoformat(),
+            "dias_uteis": uteis,
+            "status_triagem": estado,
+            "responsavel_id": (tri.responsavel_id if tri else None),
+            "meu": bool(tri and tri.responsavel_id == usuario.id),
+            "acompanhado": pub.numero_processo in acompanhados,
+            "severidade": _severidade(uteis, estado),
+        })
+
+    # Dias sem expediente forense, com o motivo. É a informação que transforma
+    # o calendário de "lista de datas" em "explicação da contagem".
+    nao_uteis = []
+    cursor = primeiro
+    while cursor <= ultimo:
+        if not eh_dia_util(cursor, settings.juridico_uf):
+            nao_uteis.append(cursor.isoformat())
+        cursor += datetime.timedelta(days=1)
+
+    todos = [i for lista in dias.values() for i in lista]
+    pendentes = [i for i in todos if i["severidade"] not in ("feito",)]
+    return {
+        "mes": primeiro.strftime("%Y-%m"),
+        "hoje": h.isoformat(),
+        "dias": dias,
+        "nao_uteis": nao_uteis,
+        "resumo": {
+            "total": len(todos),
+            "pendentes": len(pendentes),
+            "vencidos": sum(1 for i in pendentes if i["severidade"] == "vencido"),
+            "criticos": sum(1 for i in pendentes if i["severidade"] == "critico"),
+            "concluidos": len(todos) - len(pendentes),
+        },
+    }
+
+
+@router.get("/pendencias", summary="O que exige decisão hoje (independe do mês)")
+async def pendencias(
+    usuario: Annotated[Usuario, Depends(usuario_atual)],
+    sessao: Annotated[AsyncSession, Depends(get_session)],
+    limite_dias_uteis: int = Query(default=3, ge=0, le=30),
+) -> list[dict[str, Any]]:
+    """A faixa do topo da agenda: vencidos e o que vence já.
+
+    Separada de `/agenda` porque não pertence a mês nenhum — um prazo vencido
+    em agosto continua sendo problema de hoje, e sumiria ao virar a página do
+    calendário para setembro.
+    """
+    from app.hermes.agendador import _dias_uteis_ate
+
+    h = hoje()
+    acompanhados = set((await sessao.scalars(
+        select(Acompanhamento.numero_processo)
+        .where(Acompanhamento.usuario_id == usuario.id))).all())
+
+    meu = Triagem.responsavel_id == usuario.id
+    if acompanhados:
+        meu = meu | Publicacao.numero_processo.in_(acompanhados)
+
+    q = (select(Publicacao, Triagem, Processo.numero_formatado)
+         .join(Processo, Processo.numero_processo == Publicacao.numero_processo)
+         .outerjoin(Triagem, Triagem.publicacao_id == Publicacao.id)
+         .where(Publicacao.vencimento.is_not(None),
+                Publicacao.vencimento >= h - datetime.timedelta(days=60),
+                func.coalesce(Triagem.status, "novo").not_in(("concluido", "sem_providencia")),
+                meu))
+    q = _restringe_sigilo(q, usuario)
+
+    saida = []
+    for pub, tri, formatado in await sessao.execute(q.order_by(Publicacao.vencimento)):
+        assert pub.vencimento is not None
+        uteis = _dias_uteis_ate(pub.vencimento)
+        if uteis > limite_dias_uteis:
+            continue
+        estado = tri.status if tri else "novo"
+        saida.append({
+            "id": pub.id, "numero": formatado or pub.numero_processo,
+            "numero_processo": pub.numero_processo, "tribunal": pub.tribunal,
+            "ato": pub.ato_inferido, "classe": pub.classe,
+            "vencimento": pub.vencimento.isoformat(), "dias_uteis": uteis,
+            "status_triagem": estado, "severidade": _severidade(uteis, estado),
+            "acompanhado": pub.numero_processo in acompanhados,
+        })
+    return saida
+
+
+# ── "Me avisa deste processo" ─────────────────────────────────────────────
+
+class AcompanharIn(BaseModel):
+    dias_antecedencia: int = Field(default=3, ge=1, le=30)
+
+
+@router.put("/processos/{numero_processo}/acompanhar", summary="Passa a acompanhar o processo")
+async def acompanhar(
+    numero_processo: str, corpo: AcompanharIn,
+    usuario: Annotated[Usuario, Depends(usuario_atual)],
+    sessao: Annotated[AsyncSession, Depends(get_session)],
+    request: Request,
+) -> dict[str, Any]:
+    """Idempotente: marcar de novo só atualiza a antecedência, não duplica."""
+    if await sessao.get(Processo, numero_processo) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Processo não encontrado.")
+
+    atual = await sessao.scalar(
+        select(Acompanhamento).where(Acompanhamento.usuario_id == usuario.id,
+                                     Acompanhamento.numero_processo == numero_processo))
+    if atual is None:
+        atual = Acompanhamento(usuario_id=usuario.id, numero_processo=numero_processo)
+        sessao.add(atual)
+    atual.dias_antecedencia = corpo.dias_antecedencia
+
+    await registrar(sessao, acao="acompanhar", usuario_id=usuario.id, entidade="processo",
+                    entidade_id=numero_processo,
+                    detalhe={"dias_antecedencia": corpo.dias_antecedencia}, request=request)
+    await sessao.commit()
+    return {"numero_processo": numero_processo, "acompanhado": True,
+            "dias_antecedencia": atual.dias_antecedencia}
+
+
+@router.delete("/processos/{numero_processo}/acompanhar", summary="Deixa de acompanhar")
+async def desacompanhar(
+    numero_processo: str,
+    usuario: Annotated[Usuario, Depends(usuario_atual)],
+    sessao: Annotated[AsyncSession, Depends(get_session)],
+    request: Request,
+) -> dict[str, Any]:
+    atual = await sessao.scalar(
+        select(Acompanhamento).where(Acompanhamento.usuario_id == usuario.id,
+                                     Acompanhamento.numero_processo == numero_processo))
+    if atual is not None:
+        await sessao.delete(atual)
+    await registrar(sessao, acao="desacompanhar", usuario_id=usuario.id, entidade="processo",
+                    entidade_id=numero_processo, request=request)
+    await sessao.commit()
+    return {"numero_processo": numero_processo, "acompanhado": False}
+
+
+@router.get("/equipe", summary="Quem pode receber atribuição")
+async def equipe(
+    usuario: Annotated[Usuario, Depends(usuario_atual)],
+    sessao: Annotated[AsyncSession, Depends(get_session)],
+) -> list[dict[str, Any]]:
+    """Lista para o seletor de responsável. Sem e-mail: a tela precisa do nome
+    e do papel, e devolver mais dado pessoal do que a tela usa é vazamento."""
+    achado = await sessao.scalars(
+        select(Usuario).where(Usuario.ativo.is_(True)).order_by(Usuario.nome))
+    return [{"id": u.id, "nome": u.nome, "papel": u.papel,
+             "oabs": [f"{o.oab_uf}/{o.oab_numero}" for o in u.oabs]}
+            for u in achado]

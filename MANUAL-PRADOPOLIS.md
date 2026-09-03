@@ -268,7 +268,57 @@ qualquer uma para voltar ao inteiro teor.
 
 ---
 
-### 4.6 Avisos no Telegram — *o sistema procurando você*
+### 4.6 Minha agenda — *o calendário do que é seu*
+
+As outras telas mostram **o acervo**. Esta mostra **você**: só os prazos sob sua
+responsabilidade, mais os processos que você pediu para acompanhar.
+
+Ela tem três partes, e a ordem não é acidental.
+
+**1. A faixa vermelha do topo — o que exige decisão hoje**
+
+Vem antes do calendário de propósito. Um calendário é uma tela que você precisa
+*lembrar* de abrir e depois *interpretar*; a faixa já responde: *"estes 3 vencem já,
+e 1 venceu"*. Cada linha traz dois botões:
+
+- **Ver** — abre a publicação inteira no leitor.
+- **Providenciei** — marca como concluído ali mesmo, sem navegar. O item some da faixa
+  na hora, e o contador vermelho no menu diminui.
+
+Quando não há nada apertado, a faixa fica verde: *"Nenhum prazo apertado. Você está em
+dia."* É informação, não enfeite — o silêncio deixaria você em dúvida se o sistema
+está funcionando.
+
+**2. A grade do mês**
+
+Cada dia mostra até dois prazos, coloridos por urgência: vermelho sólido para vencido,
+vermelho vazado até 3 dias úteis, âmbar até 7, verde com mais folga, e riscado para o
+que já foi providenciado. Use as setas ‹ › para ver os meses seguintes — é assim que
+você enxerga a semana pesada chegando com antecedência.
+
+Os dias **listrados** são dias sem expediente forense: fim de semana, feriado ou
+recesso. Isso não é decoração: é a explicação visual de por que a contagem pula. Clique
+num deles e o sistema diz por extenso que o prazo não corre ali.
+
+**3. O dia aberto, à direita**
+
+Clicando num dia, os prazos daquela data aparecem com o ato, a classe, quantos dias
+úteis faltam e três botões — incluindo o mais importante desta tela:
+
+> **🔕 Me avisa deste** — marque, e o Hermes passa a cobrar você no Telegram sobre esse
+> processo específico, mesmo que ele não seja seu. Ao marcar, vira **🔔 Avisando**.
+
+Esse botão existe porque o calendário sozinho não basta para quem tem dificuldade com
+prazo: ele é passivo, e depende de você lembrar de abrir. Marcar um processo transforma
+o acompanhamento em algo que **vai atrás de você**, não o contrário.
+
+O número vermelho ao lado de "Minha agenda" no menu é o único contador do painel que
+fala de você, e não do acervo: são os seus prazos apertados ou vencidos. Ele fica
+visível de qualquer tela, e só zera quando você resolve.
+
+---
+
+### 4.7 Avisos no Telegram — *o sistema procurando você*
 
 As telas anteriores esperam que alguém abra o painel. Esta faz o contrário: um bot
 chamado **Hermes** leva o recado ao Telegram.
@@ -306,7 +356,7 @@ vez só. Para parar, o botão *Parar de receber avisos* — sem burocracia.
 
 ---
 
-### 4.7 Fontes e limites — *a página da honestidade*
+### 4.8 Fontes e limites — *a página da honestidade*
 
 Documenta de onde vem cada dado, o que o sistema **não** faz, e a base legal do
 tratamento. **Leia antes de confiar em qualquer número** — e mostre esta tela a

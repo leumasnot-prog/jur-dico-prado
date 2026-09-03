@@ -256,7 +256,37 @@ class EnvioHermes(Base):
     criado_em: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=agora)
 
 
+class Acompanhamento(Base):
+    """"Me avisa deste processo" — o usuário pede lembrete de um feito específico.
+
+    Existe separado de `Triagem.responsavel_id` de propósito: responsável é
+    ATRIBUIÇÃO (quem responde pelo caso, definido pela chefia ou pela auxiliar),
+    e acompanhamento é INTERESSE (quem quer ser cobrado, definido pela própria
+    pessoa). Um procurador acompanha o processo do colega enquanto ele está de
+    férias sem virar responsável por ele; e alguém que se atrapalha com prazo
+    pode acompanhar os próprios casos com antecedência maior que a padrão.
+    """
+
+    __tablename__ = "acompanhamentos"
+    __table_args__ = (
+        UniqueConstraint("usuario_id", "numero_processo", name="uq_acompanhamento"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("usuarios.id", ondelete="CASCADE"), index=True
+    )
+    numero_processo: Mapped[str] = mapped_column(
+        ForeignKey("processos.numero_processo", ondelete="CASCADE"), index=True
+    )
+    # Quantos dias úteis antes do vencimento o Hermes começa a cobrar. O padrão
+    # do sistema é 3; quem quer mais fôlego pede mais, no próprio processo.
+    dias_antecedencia: Mapped[int] = mapped_column(Integer, default=3)
+    criado_em: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=agora)
+
+
 __all__ = [
+    "Acompanhamento",
     "Auditoria",
     "EnvioHermes",
     "Papel",

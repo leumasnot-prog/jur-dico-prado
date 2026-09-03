@@ -155,6 +155,10 @@ class ItemPrazo:
     partes: tuple[str, ...] = field(default=())
     responsavel_id: int | None = None
     motivo: str = "prazo"  # "prazo" ou a palavra-chave que disparou o alerta
+    # O número SEM máscara, que é a chave do processo no banco. `numero` é o
+    # formatado, para leitura humana — casar acompanhamento por ele daria
+    # falso-negativo silencioso quando o CNJ não devolve a máscara.
+    numero_processo: str = ""
 
 
 def _br(d: datetime.date) -> str:
@@ -240,7 +244,8 @@ def montar_resumo_diario(
     return redigir(texto, nomes)
 
 
-def montar_alerta_critico(*, item: ItemPrazo, nome_procurador: str, base_url: str) -> str:
+def montar_alerta_critico(*, item: ItemPrazo, nome_procurador: str, base_url: str,
+                          acompanhando: bool = False) -> str:
     """O aviso no privado do procurador responsável.
 
     Mesmo aqui não vai nome de terceiro nem inteiro teor: o que identifica o
@@ -249,8 +254,9 @@ def montar_alerta_critico(*, item: ItemPrazo, nome_procurador: str, base_url: st
     urgencia = ("<b>VENCE HOJE</b>" if item.dias_restantes == 0
                 else "<b>VENCIDO</b>" if item.dias_restantes < 0
                 else f"{_plural(item.dias_restantes, 'dia útil', 'dias úteis')}")
+    titulo = "👁 <b>Processo que você acompanha</b>" if acompanhando else "⚠️ <b>Prazo crítico</b>"
     linhas = [
-        f"⚠️ <b>Prazo crítico</b> — {escape(nome_procurador)}",
+        f"{titulo} — {escape(nome_procurador)}",
         "",
         f"Processo <code>{escape(item.numero)}</code> · {escape(item.tribunal)}",
         f"Ato: {escape(item.ato)} ({escape(item.rito.replace('_', ' '))})",
@@ -260,6 +266,9 @@ def montar_alerta_critico(*, item: ItemPrazo, nome_procurador: str, base_url: st
         linhas.append(f"Sinalizado por: <b>{escape(item.motivo)}</b> no texto da publicação")
     if item.fundamento:
         linhas += ["", f"<i>{escape(item.fundamento)}</i>"]
+    if acompanhando:
+        linhas += ["", "<i>Você pediu para ser avisado deste processo. Para parar, "
+                       "desmarque no painel.</i>"]
     linhas += ["", "<i>Abra o painel para ler o inteiro teor.</i>"]
 
     # O nome de quem RECEBE não é dado de terceiro: ele fica de fora do filtro.

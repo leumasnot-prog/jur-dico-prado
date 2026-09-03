@@ -219,3 +219,17 @@ const hermes = {
   pedirCodigo: () => api("/hermes/vinculo/codigo", { method: "POST" }),
   desvincular: () => api("/hermes/vinculo", { method: "DELETE" }),
 };
+
+
+/* ── Agenda pessoal e acompanhamento ─────────────────────────────── */
+
+const agenda = {
+  mes:        (m) => api(`/acervo/agenda${m ? `?mes=${m}` : ""}`),
+  pendencias: ()  => api("/acervo/pendencias?limite_dias_uteis=3"),
+  equipe:     ()  => api("/acervo/equipe"),
+  seguir:     (numero, dias = 3) =>
+    api(`/acervo/processos/${encodeURIComponent(numero)}/acompanhar`,
+        { method: "PUT", body: JSON.stringify({ dias_antecedencia: dias }) }),
+  largar:     (numero) =>
+    api(`/acervo/processos/${encodeURIComponent(numero)}/acompanhar`, { method: "DELETE" }),
+};
