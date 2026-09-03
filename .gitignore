@@ -1,0 +1,44 @@
+# === SEGREDOS E CERTIFICADOS (bloqueante — nunca versionar) ===
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
+certs/
+secrets/
+
+# === Python ===
+__pycache__/
+*.py[cod]
+.venv/
+.venv-*/
+venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# === Estado local ===
+nsu_state*.json
+snapshots/
+
+# === Node / frontend ===
+node_modules/
+.vite/
+
+# === IDE / SO ===
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# === Temporários ===
+*.log
+tmp/
+temp/

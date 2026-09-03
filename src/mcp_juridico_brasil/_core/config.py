@@ -1,0 +1,61 @@
+"""Configuração de runtime do mcp-juridico-brasil."""
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Configurações carregadas de variáveis de ambiente ou arquivo .env."""
+
+    # Ambiente
+    juridico_env: str = "development"
+    juridico_log_level: str = "INFO"
+
+    # HTTP
+    juridico_cache_ttl: int = 300
+    juridico_rate_limit: int = 5
+    juridico_http_timeout: float = 30.0
+    juridico_max_retries: int = 3
+
+    # DataJud CNJ (Fase 1)
+    # Chave pública divulgada pelo próprio CNJ na wiki oficial do DataJud.
+    # Não é credencial privada - qualquer usuário pode obtê-la sem cadastro.
+    # ATENÇÃO: as credenciais das Fases 3/4 (juridico_provider_api_key,
+    # dje_client_id, dje_client_secret) são PRIVADAS e NÃO devem ter default.
+    # Ao rotacionar, definir DATAJUD_API_KEY no ambiente e remover este default.
+    datajud_api_key: str = "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw=="
+    datajud_base_url: str = "https://api-publica.datajud.cnj.jus.br"
+
+    # Provider comercial (Fase 3 - opcional)
+    # Valores aceitos: "judit" | "escavador" | "trackjud" | "" (desabilitado)
+    juridico_provider_comercial: str = ""
+    juridico_provider_api_key: str = ""
+
+    # Domicílio Judicial Eletrônico (Fase 4 - opcional)
+    dje_client_id: str = ""
+    # repr=False: o secret e a senha do certificado nunca podem aparecer em
+    # repr(settings), que é o que vaza num traceback.
+    dje_client_secret: str = Field(default="", repr=False)
+    dje_behalf_of_cpf: str = ""
+    # Certificado ICP-Brasil (e-CNPJ A1) usado no mTLS com o GeCli/PDPJ.
+    dje_cert_path: str = ""
+    dje_cert_senha: str = Field(default="", repr=False)
+    # Gate de seguranca da confirmacao de leitura (efeito juridico irreversivel).
+    # Lido tambem diretamente de os.environ em dje/provider.py; declarado aqui
+    # para que a variavel possa constar do .env sem quebrar o carregamento.
+    dje_permitir_confirmacao_leitura: str = "false"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        # BUG CORRIGIDO: sem isto, uma variavel presente no .env e ausente desta
+        # classe derruba a aplicacao inteira no import - inclusive ao seguir o
+        # passo documentado `cp .env.example .env`. Ignorar extras evita que a
+        # documentacao e o codigo saindo de sincronia virem uma falha total.
+        extra="ignore",
+    )
+
+
+settings = Settings()
+
+__all__ = ["Settings", "settings"]

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Console — MCP Jurídico Brasil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --ground:#F3F5F3; --surface:#fff; --surface-2:#EDF0EE;
+  --ink:#141A18; --ink-2:#39433F; --muted:#66716D; --line:#D3DAD6;
+  --accent:#0F4C4A; --accent-soft:#DCE9E6;
+  --ok:#3E7C4F; --ok-soft:#DFEEE2; --crit:#A32F26; --crit-soft:#F6E2E0;
+  --warn:#8A5A00; --warn-soft:#F7ECD6;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --ground:#0D1312; --surface:#141C1A; --surface-2:#1B2422;
+  --ink:#E7EEEB; --ink-2:#BCC9C5; --muted:#8B9894; --line:#2A3735;
+  --accent:#57B8AB; --accent-soft:#173330;
+  --ok:#78C48D; --ok-soft:#1A2E20; --crit:#E38A82; --crit-soft:#3A1F1C;
+  --warn:#DCA950; --warn-soft:#332616;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+header{border-bottom:1px solid var(--line);background:var(--surface);padding:18px 26px}
+h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+header p{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+main{padding:22px 26px;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.card>header{padding:13px 16px;border:0;border-bottom:1px solid var(--line)}
+.card h2{margin:0;font-family:var(--mono);font-size:13.5px;font-weight:600;color:var(--accent)}
+.card p{margin:5px 0 0;font-size:12.5px;color:var(--muted);line-height:1.5}
+form{padding:13px 16px;display:grid;gap:9px}
+.f{display:grid;gap:3px}
+label{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+input[type=text],input[type=number],select{background:var(--ground);border:1px solid var(--line);
+  border-radius:5px;padding:6px 9px;font:inherit;font-size:13px;color:var(--ink);width:100%}
+.chk{display:flex;align-items:center;gap:7px}
+.chk label{text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink-2);font-weight:400}
+button{background:var(--accent);color:var(--surface);border:0;border-radius:5px;padding:7px 14px;
+  font:inherit;font-size:13px;font-weight:600;cursor:pointer;justify-self:start}
+button:hover{filter:brightness(1.12)} button:disabled{opacity:.5;cursor:wait}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.saida{border-top:1px solid var(--line);padding:11px 16px;background:var(--surface-2);display:none}
+.saida.on{display:block}
+.status{display:inline-flex;gap:6px;align-items:center;font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:20px;margin-bottom:8px}
+.status.ok{background:var(--ok-soft);color:var(--ok)}
+.status.erro{background:var(--crit-soft);color:var(--crit)}
+pre{margin:0;font-family:var(--mono);font-size:11.5px;line-height:1.55;white-space:pre-wrap;
+  word-break:break-word;max-height:340px;overflow:auto;color:var(--ink-2)}
+.dica{padding:9px 16px;background:var(--warn-soft);color:var(--warn);font-size:12px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Console do MCP Jurídico Brasil</h1>
+  <p>Chama as tools do servidor diretamente e mostra a resposta crua. Somente leitura —
+     a confirmação de leitura de intimação foi deliberadamente omitida.</p>
+</header>
+<main id="app"></main>
+
+<script>
+const TOOLS = __TOOLS__;
+const app = document.getElementById("app");
+
+function campo(t, c) {
+  const [nome, rotulo, tipo, padrao] = c;
+  const id = `${t}__${nome}`;
+  if (tipo === "bool") {
+    return `<div class="f chk"><input type="checkbox" id="${id}" data-n="${nome}" data-t="bool"
+              ${padrao ? "checked" : ""}><label for="${id}">${rotulo}</label></div>`;
+  }
+  if (tipo.startsWith("select:")) {
+    const ops = tipo.slice(7).split(",")
+      .map(o => `<option${o === padrao ? " selected" : ""}>${o}</option>`).join("");
+    return `<div class="f"><label for="${id}">${rotulo}</label>
+            <select id="${id}" data-n="${nome}" data-t="text">${ops}</select></div>`;
+  }
+  return `<div class="f"><label for="${id}">${rotulo}</label>
+          <input type="${tipo}" id="${id}" data-n="${nome}" data-t="${tipo}"
+                 value="${padrao ?? ""}"></div>`;
+}
+
+app.innerHTML = TOOLS.map(t => `
+  <section class="card">
+    <header><h2>${t.nome}</h2><p>${t.descricao}</p></header>
+    <form data-tool="${t.nome}">
+      ${t.campos.map(c => campo(t.nome, c)).join("")}
+      <button type="submit">Executar</button>
+    </form>
+    <div class="saida" id="out__${t.nome}"><pre></pre></div>
+  </section>`).join("");
+
+app.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target, tool = form.dataset.tool;
+  const btn = form.querySelector("button");
+  const box = document.getElementById(`out__${tool}`);
+  const pre = box.querySelector("pre");
+
+  const corpo = {};
+  form.querySelectorAll("[data-n]").forEach(el => {
+    corpo[el.dataset.n] = el.dataset.t === "bool" ? el.checked : el.value;
+  });
+
+  btn.disabled = true; btn.textContent = "Executando…";
+  box.classList.add("on");
+  pre.textContent = "";
+  box.querySelector(".status")?.remove();
+
+  try {
+    const r = await fetch(`/t/${tool}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corpo),
+    });
+    const d = await r.json();
+    const s = document.createElement("div");
+    s.className = `status ${d.ok ? "ok" : "erro"}`;
+    s.textContent = d.ok ? `sucesso · ${d.ms} ms` : `erro · ${d.ms} ms`;
+    box.insertBefore(s, pre);
+    pre.textContent = d.ok
+      ? JSON.stringify(d.resultado, null, 2)
+      : `${d.erro}\n\n${(d.traceback || []).join("\n")}`;
+  } catch (err) {
+    pre.textContent = String(err);
+  } finally {
+    btn.disabled = false; btn.textContent = "Executar";
+  }
+});
+</script>
+</body>
+</html>

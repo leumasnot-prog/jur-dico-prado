@@ -1,0 +1,1549 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel Jurídico — Pradópolis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Zilla+Slab:wght@500;600;700&display=swap">
+<style>
+/* ── Tokens: paleta clara completa ─────────────────────────────── */
+:root{
+  --ground:#F3F5F3; --surface:#FFFFFF; --surface-2:#EDF0EE; --surface-3:#E3E8E5;
+  --ink:#141A18; --ink-2:#39433F; --muted:#66716D; --line:#D3DAD6; --line-2:#C0C9C4;
+  --accent:#0F4C4A; --accent-soft:#DCE9E6; --accent-ink:#0B3A38;
+  --crit:#A32F26; --crit-soft:#F6E2E0;
+  --warn:#8A5A00; --warn-soft:#F7ECD6;
+  --ok:#3E7C4F;  --ok-soft:#DFEEE2;
+  --info:#2E5C86; --info-soft:#DEE9F4;
+  --shadow:0 1px 2px rgba(20,26,24,.06), 0 8px 24px -12px rgba(20,26,24,.18);
+  --rail:236px; --radius:7px;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --slab:"Zilla Slab",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0D1312; --surface:#141C1A; --surface-2:#1B2422; --surface-3:#243230;
+    --ink:#E7EEEB; --ink-2:#BCC9C5; --muted:#8B9894; --line:#2A3735; --line-2:#3A4A47;
+    --accent:#57B8AB; --accent-soft:#173330; --accent-ink:#8FD6CC;
+    --crit:#E38A82; --crit-soft:#3A1F1C;
+    --warn:#DCA950; --warn-soft:#332616;
+    --ok:#78C48D;  --ok-soft:#1A2E20;
+    --info:#7FAAD4; --info-soft:#1A2833;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0D1312; --surface:#141C1A; --surface-2:#1B2422; --surface-3:#243230;
+  --ink:#E7EEEB; --ink-2:#BCC9C5; --muted:#8B9894; --line:#2A3735; --line-2:#3A4A47;
+  --accent:#57B8AB; --accent-soft:#173330; --accent-ink:#8FD6CC;
+  --crit:#E38A82; --crit-soft:#3A1F1C;
+  --warn:#DCA950; --warn-soft:#332616;
+  --ok:#78C48D;  --ok-soft:#1A2E20;
+  --info:#7FAAD4; --info-soft:#1A2833;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--slab);font-weight:600;text-wrap:balance;margin:0;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── Shell ─────────────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:var(--rail) 1fr;min-height:100vh}
+
+.rail{background:var(--surface);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{padding:18px 18px 16px;border-bottom:1px solid var(--line);display:flex;gap:11px;align-items:flex-start}
+.crest{width:32px;height:32px;flex:0 0 32px;border-radius:5px;background:var(--accent);
+  display:grid;place-items:center;color:#fff;font-family:var(--slab);font-weight:700;font-size:13px}
+:root[data-theme="dark"] .crest,
+:root:not([data-theme="light"]) .crest{color:#0D1312}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .crest{color:#fff}}
+.brand-t{font-family:var(--slab);font-weight:600;font-size:14px;line-height:1.25}
+.brand-s{font-size:10.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:3px}
+
+.nav{padding:10px 10px;display:flex;flex-direction:column;gap:1px;flex:1}
+.nav-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  padding:14px 8px 6px;font-weight:600}
+.nav a{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:var(--radius);
+  color:var(--ink-2);text-decoration:none;font-size:13.5px;font-weight:500;transition:background .12s}
+.nav a:hover{background:var(--surface-2)}
+.nav a.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.nav a .ic{width:15px;flex:0 0 15px;opacity:.85}
+.nav a .tally{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);
+  background:var(--surface-2);padding:1px 6px;border-radius:20px}
+.nav a.on .tally{background:var(--surface);color:var(--accent-ink)}
+
+.rail-foot{padding:12px 14px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+.rail-foot b{color:var(--ink-2);font-weight:600}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--surface) 92%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+  padding:12px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.topbar h1{font-size:17px}
+.topbar .sub{font-size:12px;color:var(--muted)}
+.spacer{flex:1}
+.sweep{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);
+  font-family:var(--mono);padding:4px 9px;background:var(--surface-2);border-radius:20px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--ok);flex:0 0 6px}
+.view{padding:22px;flex:1;min-width:0}
+
+/* ── Componentes ───────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
+.card-h{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.card-h h3{font-size:14px}
+.card-h .hint{font-size:11.5px;color:var(--muted);margin-left:auto}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;
+  font-size:11px;font-weight:600;letter-spacing:.01em;white-space:nowrap}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.info{background:var(--info-soft);color:var(--info)}
+.pill.neutral{background:var(--surface-2);color:var(--muted)}
+.pill.acc{background:var(--accent-soft);color:var(--accent-ink)}
+
+.tag{display:inline-block;padding:1.5px 7px;border-radius:4px;font-size:10.5px;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;background:var(--surface-2);color:var(--muted);
+  border:1px solid var(--line)}
+
+.btn{background:var(--surface);border:1px solid var(--line-2);border-radius:5px;padding:5px 11px;
+  font-size:12.5px;font-weight:500;cursor:pointer;transition:background .12s,border-color .12s}
+.btn:hover{background:var(--surface-2)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.pri:hover{filter:brightness(1.12)}
+.btn.sm{padding:3px 8px;font-size:11.5px}
+.btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.fld input,.fld select{background:var(--surface);border:1px solid var(--line-2);border-radius:5px;
+  padding:6px 9px;font-size:13px;width:100%}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px;
+  position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line-2)}
+.kpi.crit::before{background:var(--crit)} .kpi.warn::before{background:var(--warn)}
+.kpi.ok::before{background:var(--ok)} .kpi.acc::before{background:var(--accent)}
+.kpi .k{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi .v{font-family:var(--slab);font-size:29px;font-weight:700;line-height:1.05;margin-top:5px;
+  font-variant-numeric:tabular-nums}
+.kpi .d{font-size:11.5px;color:var(--muted);margin-top:3px}
+
+/* Barras */
+.bars{display:flex;flex-direction:column;gap:9px;padding:15px 16px}
+.bar-row{display:grid;grid-template-columns:1fr 42px;gap:10px;align-items:center}
+.bar-lbl{font-size:12.5px;display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+.bar-lbl span:last-child{color:var(--muted);font-family:var(--mono);font-size:11.5px}
+.track{height:6px;background:var(--surface-3);border-radius:20px;overflow:hidden}
+.fill{height:100%;background:var(--accent);border-radius:20px}
+.bar-pct{font-family:var(--mono);font-size:11.5px;color:var(--muted);text-align:right}
+
+/* Tabela */
+.tbl-wrap{overflow:auto;max-height:calc(100vh - 235px);min-height:280px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  font-weight:600;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;
+  position:sticky;top:0;background:var(--surface);z-index:1;
+  box-shadow:inset 0 -1px 0 var(--line)}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr{cursor:pointer;transition:background .1s}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:none}
+.cell-num{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.cell-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+/* Feed bipartido */
+.feed{display:grid;grid-template-columns:minmax(330px,400px) 1fr;gap:14px;
+  height:calc(100vh - 132px);min-height:520px}
+.feed-list{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  display:flex;flex-direction:column;overflow:hidden}
+.feed-tools{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.feed-search{width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;
+  padding:6px 10px;font-size:13px}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:500;cursor:pointer;
+  background:var(--surface-2);border:1px solid transparent;color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.feed-scroll{overflow-y:auto;flex:1}
+.fitem{padding:11px 13px;border-bottom:1px solid var(--line);cursor:pointer;
+  border-left:3px solid transparent;transition:background .1s}
+.fitem:hover{background:var(--surface-2)}
+.fitem.sel{background:var(--accent-soft);border-left-color:var(--accent)}
+.fitem-top{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.fitem-num{font-family:var(--mono);font-size:12px;font-weight:500}
+.fitem-cls{font-size:12px;color:var(--ink-2);line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fitem-bot{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:11px;color:var(--muted)}
+.unread{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:0 0 6px}
+
+.reader{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  overflow-y:auto;padding:0}
+.reader-h{padding:16px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;
+  background:var(--surface);z-index:2}
+.reader-h h2{font-size:16px;margin-bottom:3px}
+.reader-body{padding:18px 20px;display:flex;flex-direction:column;gap:18px}
+.sect{display:flex;flex-direction:column;gap:8px}
+.sect-t{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+  font-weight:600;display:flex;align-items:center;gap:8px}
+.sect-t::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;font-size:12.5px}
+.kv dt{color:var(--muted);white-space:nowrap}
+.kv dd{margin:0}
+
+.teor{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:14px 16px;
+  font-size:12.5px;line-height:1.65;white-space:pre-wrap;max-height:340px;overflow-y:auto;
+  font-family:var(--mono)}
+
+.parties{display:flex;flex-direction:column;gap:5px}
+.party{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 0}
+.party.ente{font-weight:600;color:var(--accent-ink)}
+.polo{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+  border:1px solid var(--line);border-radius:3px;padding:0 5px;flex:0 0 auto}
+
+.prazo-box{border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.prazo-head{padding:11px 14px;display:flex;align-items:center;gap:10px;background:var(--surface-2);
+  border-bottom:1px solid var(--line)}
+.prazo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));
+  border-top:1px solid var(--line)}
+.pstep{padding:11px 14px;border-right:1px solid var(--line)}
+.pstep:last-child{border-right:none}
+.pstep .pl{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.pstep .pv{font-family:var(--mono);font-size:15px;font-weight:500;margin-top:4px}
+.pstep .pn{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.legal{font-size:11.5px;color:var(--muted);line-height:1.5;padding:10px 14px;
+  border-top:1px solid var(--line);background:var(--surface-2)}
+.legal b{color:var(--ink-2)}
+
+.triage{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.empty{display:grid;place-items:center;height:100%;color:var(--muted);font-size:13px;padding:40px;text-align:center}
+
+/* Agenda de prazos */
+.agenda{display:flex;flex-direction:column}
+.ag-row{display:grid;grid-template-columns:96px 1fr auto;gap:14px;padding:11px 16px;
+  border-bottom:1px solid var(--line);align-items:center;cursor:pointer}
+.ag-row:hover{background:var(--surface-2)}
+.ag-row:last-child{border-bottom:none}
+.ag-date{font-family:var(--mono);font-size:12.5px;font-weight:500}
+.ag-when{font-size:10.5px;color:var(--muted);margin-top:2px}
+
+.split{display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start}
+.calc{display:flex;flex-direction:column;gap:11px;padding:15px 16px}
+.calc-out{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:13px 15px}
+.calc-out .big{font-family:var(--slab);font-size:23px;font-weight:700;font-variant-numeric:tabular-nums}
+
+.note{border-left:3px solid var(--warn);background:var(--warn-soft);color:var(--warn);
+  padding:11px 14px;border-radius:0 5px 5px 0;font-size:12.5px;line-height:1.55}
+.note b{font-weight:700}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+
+/* ── Tooltip pedagógico ────────────────────────────────────────── */
+.explica{width:15px;height:15px;flex:0 0 15px;border-radius:50%;border:1px solid var(--line-2);
+  background:var(--surface);color:var(--muted);font-size:10px;font-weight:700;line-height:1;
+  cursor:help;padding:0;display:inline-grid;place-items:center;vertical-align:middle;
+  margin-left:5px;transition:background .12s,color .12s,border-color .12s}
+.explica:hover,.explica[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent-ink);
+  border-color:var(--accent)}
+.pop{position:fixed;z-index:60;max-width:330px;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:7px;box-shadow:var(--shadow);
+  padding:12px 14px;font-size:12.5px;line-height:1.55;color:var(--ink-2)}
+.pop h4{font-family:var(--slab);font-size:13px;color:var(--ink);margin-bottom:5px}
+.pop b{color:var(--ink);font-weight:600}
+.pop em{font-style:italic}
+.pop::after{content:"";position:absolute;width:9px;height:9px;background:var(--surface);
+  border-left:1px solid var(--line-2);border-top:1px solid var(--line-2);transform:rotate(45deg)}
+.pop::after{left:var(--seta,16px)}
+.pop[data-lado="baixo"]::after{top:-5px}
+.pop[data-lado="cima"]::after{bottom:-5px;transform:rotate(225deg)}
+
+/* ── Faixa educativa e banners dispensáveis ────────────────────── */
+.faixa{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;margin-bottom:12px;
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;
+  background:var(--accent-soft);color:var(--accent-ink);font-size:12.5px;line-height:1.55}
+.faixa b{font-weight:700}
+.faixa .fechar{margin-left:auto;background:none;border:0;color:inherit;cursor:pointer;
+  font-size:15px;line-height:1;padding:0 2px;opacity:.65}
+.faixa .fechar:hover{opacity:1}
+
+/* ── Estados vazios que ensinam ────────────────────────────────── */
+.empty{display:grid;place-items:center;height:100%;color:var(--muted);font-size:13px;
+  padding:36px 28px;text-align:center;line-height:1.6}
+.empty strong{display:block;color:var(--ink);font-family:var(--slab);font-size:14px;
+  font-weight:600;margin-bottom:5px}
+.empty .btn{margin-top:11px}
+.empty.bom strong{color:var(--ok)}
+
+/* ── Tour guiado ───────────────────────────────────────────────── */
+.tour-mask{position:fixed;inset:0;z-index:70;background:rgba(12,20,18,.55);
+  pointer-events:auto}
+.tour-hole{position:fixed;z-index:71;border-radius:7px;pointer-events:none;
+  box-shadow:0 0 0 3px var(--accent), 0 0 0 9999px rgba(12,20,18,.55);
+  transition:all .28s ease-out}
+@media (prefers-reduced-motion:reduce){.tour-hole{transition:none}}
+.tour-balao{position:fixed;z-index:72;max-width:360px;background:var(--surface);
+  border:1px solid var(--line-2);border-radius:8px;box-shadow:var(--shadow);padding:15px 17px}
+.tour-balao h3{font-size:14px;margin-bottom:6px}
+.tour-balao p{font-size:13px;color:var(--ink-2);line-height:1.6;margin:0}
+.tour-balao b{color:var(--ink);font-weight:600}
+.tour-rodape{display:flex;align-items:center;gap:9px;margin-top:13px}
+.tour-passos{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.tour-rodape .btn{margin-left:auto}
+.tour-inicio{position:fixed;inset:0;z-index:72;display:grid;place-items:center;
+  background:rgba(12,20,18,.55)}
+.tour-inicio .cx{background:var(--surface);border:1px solid var(--line-2);border-radius:9px;
+  padding:22px 26px;max-width:400px;box-shadow:var(--shadow);text-align:center}
+.tour-inicio h3{font-size:16px;margin-bottom:7px}
+.tour-inicio p{font-size:13px;color:var(--ink-2);line-height:1.6;margin-bottom:15px}
+.tour-inicio .acoes{display:flex;gap:9px;justify-content:center}
+
+@media (max-width:1080px){
+  .feed{grid-template-columns:1fr;height:auto}
+  .feed-list{max-height:380px}
+  .split{grid-template-columns:1fr}
+}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .rail{position:static;height:auto;flex-direction:row;align-items:center;overflow-x:auto}
+  .brand{border-bottom:none;border-right:1px solid var(--line)}
+  .nav{flex-direction:row;padding:8px;gap:4px}
+  .nav-lbl,.rail-foot{display:none}
+  .nav a .tally{display:none}
+  .view{padding:14px}
+}
+</style>
+<style>
+/* ── Login ─────────────────────────────────────────────────────── */
+.login-tela{min-height:100vh;display:grid;place-items:center;background:var(--ground);padding:20px}
+.login-cx{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);
+  border-radius:9px;box-shadow:var(--shadow);padding:28px 30px}
+.login-marca{display:flex;gap:11px;align-items:center;margin-bottom:20px}
+.login-cx h1{font-size:17px;margin:0}
+.login-cx .sub{font-size:11.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.login-cx form{display:flex;flex-direction:column;gap:13px}
+.login-cx label{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--muted);font-weight:600;display:block;margin-bottom:4px}
+.login-cx input{width:100%;background:var(--ground);border:1px solid var(--line-2);
+  border-radius:5px;padding:9px 11px;font:inherit;font-size:14px;color:var(--ink)}
+.login-cx input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.login-cx button{background:var(--accent);color:var(--surface);border:0;border-radius:5px;
+  padding:10px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:3px}
+.login-cx button:hover{filter:brightness(1.12)}
+.login-cx button:disabled{opacity:.55;cursor:wait}
+.login-erro{background:var(--crit-soft);color:var(--crit);border:1px solid var(--crit);
+  border-radius:5px;padding:9px 11px;font-size:12.5px}
+.login-rodape{margin-top:17px;padding-top:15px;border-top:1px solid var(--line);
+  font-size:11.5px;color:var(--muted);line-height:1.55}
+.usuario-chip{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-2);
+  padding:4px 10px;background:var(--surface-2);border-radius:20px}
+.usuario-chip .papel{font-size:10px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--accent-ink);background:var(--accent-soft);padding:1px 6px;border-radius:20px}
+</style>
+
+</head>
+<body>
+<script>
+const SHELL = "<div class=\"app\">\n  <aside class=\"rail\">\n    <div class=\"brand\">\n      <div class=\"crest\">PR</div>\n      <div>\n        <div class=\"brand-t\">Departamento Jurídico</div>\n        <div class=\"brand-s\">Pradópolis · SP</div>\n      </div>\n    </div>\n    <nav class=\"nav\" id=\"nav\">\n      <div class=\"nav-lbl\">Acompanhamento</div>\n      <a href=\"#painel\" data-v=\"painel\"><span class=\"ic\">◱</span>Painel</a>\n      <a href=\"#publicacoes\" data-v=\"publicacoes\"><span class=\"ic\">▤</span>Publicações<span class=\"tally\" id=\"t-pub\"></span></a>\n      <a href=\"#prazos\" data-v=\"prazos\"><span class=\"ic\">◷</span>Prazos<span class=\"tally\" id=\"t-prz\"></span></a>\n      <div class=\"nav-lbl\">Acervo</div>\n      <a href=\"#carteira\" data-v=\"carteira\"><span class=\"ic\">▦</span>Carteira<span class=\"tally\" id=\"t-car\"></span></a>\n      <a href=\"#processo\" data-v=\"processo\"><span class=\"ic\">▣</span>Processo</a>\n      <div class=\"nav-lbl\">Sistema</div>\n      <a href=\"#fontes\" data-v=\"fontes\"><span class=\"ic\">◈</span>Fontes e limites</a>\n    </nav>\n    <div class=\"rail-foot\">\n      Fonte: <b>DJEN/Comunica</b> + <b>DataJud CNJ</b><br>\n      Acervo no Neon PostgreSQL · toda ação é auditada\n    </div>\n  </aside>\n\n  <div class=\"main\">\n    <header class=\"topbar\">\n      <div>\n        <h1 id=\"vtitle\">Painel</h1>\n        <div class=\"sub\" id=\"vsub\"></div>\n      </div>\n      <div class=\"spacer\"></div>\n      <div class=\"sweep\"><span class=\"dot\"></span><span id=\"sweep-t\"></span></div>\n      <span class=\"usuario-chip\" id=\"quem\"></span>\n      <button class=\"btn sm\" id=\"varrer\">Varrer o diário</button>\n      <button class=\"btn sm\" id=\"tour\">Como usar</button>\n      <button class=\"btn sm\" id=\"theme\">Tema</button>\n      <button class=\"btn sm\" id=\"sair\">Sair</button>\n    </header>\n    <main class=\"view\" id=\"view\"></main>\n  </div>\n</div>\n\n";
+const iso = d => d.toISOString().slice(0,10);
+const parseD = s => { const [y,m,d] = s.slice(0,10).split("-").map(Number); return new Date(Date.UTC(y,m-1,d)); };
+const addD = (d,n) => new Date(d.getTime()+n*864e5);
+
+
+
+
+
+/* Tabela de prazos e ritos — espelha _PRAZOS_CPC / _PRAZOS_PROPRIOS */
+const PRAZOS = {
+  "Contestação":15,"Apelação":15,"Embargos de Declaração":5,"Agravo de Instrumento":15,
+  "Contrarrazões":15,"Manifestação":15,"Recurso Especial":15,"Recurso Extraordinário":15,
+  "Recurso Ordinário":8,"Embargos à Execução Fiscal":30,"Recurso Inominado":10,
+  "Impugnação ao Cumprimento de Sentença":30
+};
+const PRAZO_PROPRIO = new Set(["Embargos à Execução Fiscal","Recurso Inominado",
+  "Impugnação ao Cumprimento de Sentença"]);
+// Atos de defesa na Justiça do Trabalho: quádruplo pelo DL 779/69, art. 1º, II.
+const DEFESA_TRABALHISTA = new Set(["Contestação","Manifestação"]);
+
+/**
+ * Calcula o prazo processual.
+ * @param dispIso data de DISPONIBILIZAÇÃO no DJEN
+ * @param ato     rótulo do ato (chave de PRAZOS)
+ * @param fazenda parte é Fazenda Pública (art. 183)
+ * @param rito    "comum" | "jefp" | "trabalhista"
+ */
+function calcPrazo(dispIso, ato, fazenda, rito){
+  const simples = PRAZOS[ato] ?? 15;
+  let mult = 1, fundamento, regra = "simples";
+  if(!fazenda){ regra = "nao_fazenda"; fundamento = "Prazo simples — parte não é Fazenda Pública."; }
+  else if(rito === "trabalhista"){
+    // O prazo diferenciado do ente público na Justiça do Trabalho NÃO vem do
+    // art. 183 do CPC, e sim do Decreto-Lei 779/69.
+    if(DEFESA_TRABALHISTA.has(ato)){
+      mult = 4; regra = "quadruplo";
+      fundamento = `Prazo em QUÁDRUPLO (art. 1º, II, do Decreto-Lei 779/69): na Justiça do Trabalho o ente público tem prazo quadruplicado para contestar. O art. 183 do CPC não se aplica a este rito. ${simples} dias úteis multiplicados para ${simples*4}.`;
+    } else {
+      mult = 2; regra = "dobro_clt";
+      fundamento = `Prazo em DOBRO (art. 1º, III, do Decreto-Lei 779/69): na Justiça do Trabalho o ente público tem prazo em dobro para recorrer. O art. 183 do CPC não se aplica a este rito. ${simples} dias úteis dobrados para ${simples*2}.`;
+    }
+  }
+  else if(rito === "jefp"){ regra = "jefp"; fundamento = "Prazo SIMPLES: no Juizado Especial da Fazenda Pública não há prazo diferenciado (art. 7º da Lei 12.153/2009), o que afasta o dobro do art. 183 do CPC."; }
+  else if(PRAZO_PROPRIO.has(ato)){ regra = "proprio"; fundamento = `Prazo SIMPLES: “${ato}” tem prazo próprio fixado em lei — o dobro não incide (art. 183, §2º, do CPC).`; }
+  else { mult = 2; regra = "dobro_cpc"; fundamento = `Prazo EM DOBRO (art. 183, caput, do CPC): o Município goza de prazo em dobro para todas as suas manifestações. ${simples} dias úteis dobrados para ${simples*2}.`; }
+  const dias = simples * mult;
+  const dobro = mult > 1;
+
+  const disp = parseD(dispIso);
+  const publicacao = proxUtil(disp);              // art. 224, §2º
+  const termo = proxUtil(publicacao);             // art. 224, caput
+  let n = 0, cur = termo, fim = termo;
+  const obstaculos = [];
+  while(n < dias){
+    if(diaUtil(cur)){ n++; fim = cur; }
+    cur = addD(cur,1);
+  }
+  let scan = addD(publicacao,1);
+  while(scan <= fim){
+    if(scan.getUTCDay()!==0 && scan.getUTCDay()!==6){
+      if(emRecesso(scan)) obstaculos.push([iso(scan),"Recesso forense (art. 220 do CPC)"]);
+      else { const n2 = nomeFeriado(scan); if(n2) obstaculos.push([iso(scan),n2]); }
+    }
+    scan = addD(scan,1);
+  }
+  const hoje = parseD(iso(new Date()));
+  const restantes = Math.round((fim - hoje)/864e5);
+  return { simples, dias, dobro, mult, regra, fundamento, ato, rito,
+    disponibilizacao: iso(disp), publicacao: iso(publicacao),
+    termo: iso(termo), fim: iso(fim), obstaculos, restantes,
+    recesso: obstaculos.filter(o=>o[1].startsWith("Recesso")).length };
+}
+
+// Movidos das telas: o login (em _app.js) usa esc() antes delas.
+const el = id => document.getElementById(id);
+
+// Nome do ente, para destacar o Município na lista de partes. O backend também
+// marca `e_o_ente` em cada parte; aqui é só apresentação.
+const ENTE = /MUNICIPIO DE PRADOPOLIS|PREFEITURA MUNICIPAL DE PRAD/i;
+
+// Recuperados do painel da Task 1.
+const esc = s => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sev = r => r < 0 ? "crit" : r <= 3 ? "crit" : r <= 7 ? "warn" : "ok";
+const sevTxt = r => r < 0 ? `vencido há ${-r}d` : r === 0 ? "vence hoje" : `${r} dias`;
+const semAcento = s => (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const POLO = {A:"ativo", P:"passivo"};
+const ehEnte = n => ENTE.test(semAcento(n||"").toUpperCase());
+const fmtD = s => s ? s.slice(0,10).split("-").reverse().join("/") : "—";
+// Title-case para os rótulos vindos das APIs, que chegam em caixa alta.
+// Detectar sigla pelo formato falha ("RECURSO" e "RITO" são caixa alta e não são
+// siglas), então a lista é explícita: siglas de tribunal, unidades judiciárias e
+// tudo que contenha dígito ou ordinal (1ª Vara, EXE4, CON2).
+const SIGLAS = new Set(["TJSP","TRT15","TST","STJ","STF","TRF3","TRT","TRF","CNJ","OAB","MP","MPT",
+  "CEJUSC","SEF","JEF","UPJ","SDI","SPF","DAM","RAJ","DEECRIM","PJE","CLT","CPC","LEF","INSS",
+  "CON1","CON2","LIQ1","LIQ2","EXE1","EXE2","EXE3","EXE4","ROT","AIRR","II","III","IV"]);
+const LIGA = new Set(["de","da","do","das","dos","e","em","a","o","no","na","ao","à","com","para"]);
+const temDigito = t => /[0-9]/.test(t);
+const titulo = s => (s||"").split(/(\s+)/).map((tk,i) => {
+  if(/^\s+$/.test(tk)) return tk;
+  const nu = tk.replace(/[^0-9A-Za-zÀ-ÿ]/g,"").toUpperCase();
+  if(SIGLAS.has(nu) || temDigito(tk)) return tk.toUpperCase() === tk ? tk : tk;
+  const low = tk.toLocaleLowerCase("pt-BR");
+  if(i > 0 && LIGA.has(low)) return low;
+  return low.replace(/(^|[\-–/(])([a-zà-ÿ])/g,(m,a,b)=>a+b.toLocaleUpperCase("pt-BR"));
+}).join("");
+
+/* ═══════════════════════════════════════════════════════════════════
+   Painel Jurídico de Pradópolis — camada de dados
+   Substitui os dados embutidos por chamadas à API. Sem dependências.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const API = "";                       // mesma origem: o backend serve este arquivo
+const CHAVE_TOKEN = "pradopolis.sessao.v1";
+
+const guarda = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* modo privado */ } };
+const le = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const apaga = (k) => { try { localStorage.removeItem(k); } catch (e) { /* idem */ } };
+
+let sessao = null;
+try { sessao = JSON.parse(le(CHAVE_TOKEN) || "null"); } catch (e) { sessao = null; }
+
+/** Chamada autenticada. Renova o token uma vez em 401 antes de desistir. */
+async function api(caminho, opcoes = {}, jaRenovou = false) {
+  const cabecalhos = { ...(opcoes.headers || {}) };
+  if (sessao?.access_token) cabecalhos.Authorization = `Bearer ${sessao.access_token}`;
+  if (opcoes.body && !cabecalhos["Content-Type"]) cabecalhos["Content-Type"] = "application/json";
+
+  const r = await fetch(API + caminho, { ...opcoes, headers: cabecalhos });
+
+  if (r.status === 401 && sessao?.refresh_token && !jaRenovou) {
+    const renovou = await renovar();
+    if (renovou) return api(caminho, opcoes, true);
+    sair();
+    throw new Error("Sessão expirada. Entre novamente.");
+  }
+  if (!r.ok) {
+    let detalhe = `Erro ${r.status}`;
+    try { detalhe = (await r.json()).detail ?? detalhe; } catch (e) { /* resposta sem json */ }
+    throw new Error(detalhe);
+  }
+  return r.status === 204 ? null : r.json();
+}
+
+async function renovar() {
+  try {
+    const r = await fetch(API + "/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: sessao.refresh_token }),
+    });
+    if (!r.ok) return false;
+    const novo = await r.json();
+    sessao = { ...sessao, ...novo };
+    guarda(CHAVE_TOKEN, JSON.stringify(sessao));
+    return true;
+  } catch (e) { return false; }
+}
+
+async function entrar(email, senha) {
+  const corpo = new URLSearchParams({ username: email, password: senha });
+  const r = await fetch(API + "/auth/login", { method: "POST", body: corpo });
+  if (!r.ok) throw new Error("E-mail ou senha incorretos.");
+  sessao = await r.json();
+  guarda(CHAVE_TOKEN, JSON.stringify(sessao));
+  sessao.usuario = await api("/auth/eu");
+  guarda(CHAVE_TOKEN, JSON.stringify(sessao));
+  return sessao.usuario;
+}
+
+function sair() {
+  sessao = null;
+  apaga(CHAVE_TOKEN);
+  location.reload();
+}
+
+/* ── Tela de login ──────────────────────────────────────────────── */
+
+function telaLogin(mensagem = "") {
+  document.body.innerHTML = `
+  <div class="login-tela">
+    <div class="login-cx">
+      <div class="login-marca">
+        <div class="crest">PR</div>
+        <div>
+          <h1>Departamento Jurídico</h1>
+          <div class="sub">Pradópolis · SP</div>
+        </div>
+      </div>
+      ${mensagem ? `<div class="login-erro" role="alert">${esc(mensagem)}</div>` : ""}
+      <form id="f-login" autocomplete="on">
+        <div>
+          <label for="email">E-mail funcional</label>
+          <input type="email" id="email" name="email" required autocomplete="username"
+                 placeholder="nome@pradopolis.sp.gov.br">
+        </div>
+        <div>
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" name="senha" required
+                 autocomplete="current-password">
+        </div>
+        <button type="submit" id="b-entrar">Entrar</button>
+      </form>
+      <p class="login-rodape">
+        Acesso restrito aos procuradores e servidores do Departamento Jurídico.
+        Toda ação neste sistema é registrada em trilha de auditoria.
+      </p>
+    </div>
+  </div>`;
+
+  document.getElementById("f-login").onsubmit = async (e) => {
+    e.preventDefault();
+    const b = document.getElementById("b-entrar");
+    b.disabled = true; b.textContent = "Entrando…";
+    try {
+      await entrar(document.getElementById("email").value.trim(),
+                   document.getElementById("senha").value);
+      location.reload();
+    } catch (erro) {
+      telaLogin(erro.message);
+    }
+  };
+  document.getElementById("email").focus();
+}
+
+/* ── Carga dos dados do acervo ──────────────────────────────────── */
+
+let PUBS = [], PROCESSOS = [], ESTATISTICAS = {}, USUARIO = null;
+
+/** Converte a resposta da API no formato que as telas já consomem. */
+function adaptar(p) {
+  const venc = p.vencimento ? parseD(p.vencimento) : null;
+  const hoje = parseD(iso(new Date()));
+  const restantes = venc ? Math.round((venc - hoje) / 864e5) : 999;
+  return {
+    id: String(p.id),
+    numero: p.numero_formatado || p.numero_processo,
+    data: p.data_disponibilizacao,
+    tribunal: p.tribunal,
+    orgao: p.orgao,
+    classe: p.classe,
+    documento: p.tipo_documento,
+    tipo: p.tipo_documento,
+    meio: p.meio,
+    link: p.link_validacao,
+    texto: p.texto,
+    partes: (p.partes || []).map((x) => ({
+      nome: x.nome,
+      polo: x.polo === "ativo" ? "A" : x.polo === "passivo" ? "P" : "",
+    })),
+    advogados: p.advogados || [],
+    declarado: p.prazo_no_texto ? { dias: p.prazo_no_texto } : null,
+    poloEnte: (p.partes || []).find((x) => x.e_o_ente)?.polo ?? "não informado",
+    contra: (p.partes || []).filter((x) => !x.e_o_ente).map((x) => x.nome),
+    status_triagem: p.status_triagem,
+    responsavel_id: p.responsavel_id,
+    anotacao: p.anotacao,
+    // O prazo vem inteiro do backend, que delega ao MCP — a interface não
+    // recalcula nada. Uma única fonte de verdade para a regra.
+    prazo: {
+      ...(p.prazo || {}),
+      ato: p.prazo?.ato ?? p.ato,
+      rito: p.prazo?.rito ?? p.rito,
+      fim: p.prazo?.fim ?? p.vencimento,
+      restantes,
+      dobro: (p.prazo?.mult ?? 1) > 1,
+      regra: p.prazo?.regra ?? "nao_fazenda",
+      obstaculos: p.prazo?.obstaculos ?? [],
+      fundamento: p.prazo?.fundamento ?? "",
+    },
+  };
+}
+
+async function carregarAcervo() {
+  const [pubs, procs, stats] = await Promise.all([
+    api("/acervo/publicacoes?dias=45&limite=500"),
+    api("/acervo/processos"),
+    api("/acervo/estatisticas"),
+  ]);
+  PUBS = pubs.map(adaptar);
+  PROCESSOS = procs.map((p) => ({
+    numero: p.numero_formatado || p.numero_processo,
+    numero_processo: p.numero_processo,
+    tribunal: p.tribunal, orgao: p.orgao, classe: p.classe,
+    polo: p.polo_do_ente, ultima: p.ultima_publicacao,
+    proximo: p.proximo_vencimento
+      ? { fim: p.proximo_vencimento,
+          restantes: Math.round((parseD(p.proximo_vencimento) - parseD(iso(new Date()))) / 864e5) }
+      : null,
+    pubs: PUBS.filter((x) => x.numero === (p.numero_formatado || p.numero_processo)),
+    contra: p.partes_contrarias || [], advogados: p.advogados || [],
+    total_publicacoes: p.total_publicacoes,
+  }));
+  ESTATISTICAS = stats;
+}
+
+/** Triagem: otimista na tela, revertida se a API recusar. */
+async function salvarTriagem(pub, campos) {
+  const antes = { status_triagem: pub.status_triagem, anotacao: pub.anotacao };
+  Object.assign(pub, campos);
+  try {
+    await api(`/acervo/publicacoes/${pub.id}/triagem`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status: pub.status_triagem,
+        anotacao: pub.anotacao ?? null,
+      }),
+    });
+    return true;
+  } catch (erro) {
+    Object.assign(pub, antes);
+    alert(`Não foi possível salvar: ${erro.message}`);
+    return false;
+  }
+}
+
+async function dispararVarredura() {
+  return api("/acervo/varredura?dias=30", { method: "POST" });
+}
+
+const EXPLICACOES = {
+  publicacao: {
+    t: "Por que a publicação é no dia seguinte",
+    c: "O diário informa a data de <b>disponibilização</b>. O CPC considera publicado no primeiro dia útil seguinte (art. 224, §2º) — e o prazo só começa a correr no dia útil seguinte à publicação (art. 224, <em>caput</em>). São dois saltos, não um."
+  },
+  dobro_cpc: {
+    t: "Prazo em dobro da Fazenda Pública",
+    c: "O Município tem prazo em dobro para todas as suas manifestações processuais (art. 183, <em>caput</em>, do CPC). O prazo simples de 15 dias úteis passa a 30."
+  },
+  quadruplo: {
+    t: "Prazo quádruplo na Justiça do Trabalho",
+    c: "Na Justiça do Trabalho o prazo diferenciado <b>não vem do CPC</b>, e sim do Decreto-Lei 779/69: quádruplo para contestar (art. 1º, II) e dobro para recorrer (art. 1º, III)."
+  },
+  dobro_clt: {
+    t: "Prazo em dobro para recorrer",
+    c: "Na Justiça do Trabalho o ente público recorre em dobro por força do Decreto-Lei 779/69, art. 1º, III — <b>não</b> pelo art. 183 do CPC, que não se aplica a este rito."
+  },
+  jefp: {
+    t: "Por que aqui não há dobro",
+    c: "No Juizado Especial da Fazenda Pública não existe prazo diferenciado para a Fazenda (art. 7º da Lei 12.153/2009), o que afasta o dobro do art. 183 do CPC."
+  },
+  proprio: {
+    t: "Prazo próprio fixado em lei",
+    c: "Quando a lei fixa prazo específico para o ato, o dobro do art. 183 <b>não incide</b> (art. 183, §2º, do CPC). É o caso dos embargos à execução fiscal, com 30 dias pelo art. 16 da Lei 6.830/80."
+  },
+  nao_fazenda: {
+    t: "Prazo simples",
+    c: "O prazo diferenciado do art. 183 do CPC vale para a Fazenda Pública. Fora dessa hipótese, aplica-se o prazo simples."
+  },
+  polo: {
+    t: "Posição do Município",
+    c: "<b>Passivo</b> = o Município é réu, foi processado. <b>Ativo</b> = o Município é autor, processou. Em Pradópolis, 62% do acervo é passivo — o perfil típico de um jurídico municipal."
+  }
+};
+
+/** Botão de ajuda ancorado a um dado. `k` é a chave em EXPLICACOES. */
+// Se a regra vier desconhecida do backend, o botão simplesmente não aparece —
+// melhor sem explicação do que a tela inteira quebrar.
+const ajuda = k => !EXPLICACOES[k] ? "" : `<button type="button" class="explica" data-explica="${k}"
+  aria-expanded="false" aria-label="Explicação: ${esc(EXPLICACOES[k].t)}">?</button>`;
+
+let popAberto = null;
+function fecharPop(){
+  if(!popAberto) return;
+  popAberto.botao?.setAttribute("aria-expanded","false");
+  popAberto.el.remove();
+  popAberto = null;
+}
+function abrirPop(botao){
+  const chave = botao.dataset.explica, dados = EXPLICACOES[chave];
+  if(!dados) return;
+  const jaEra = popAberto?.botao === botao;
+  fecharPop();
+  if(jaEra) return;                       // clicar de novo fecha
+
+  const el = document.createElement("div");
+  el.className = "pop";
+  el.setAttribute("role","dialog");
+  el.setAttribute("aria-label", dados.t);
+  el.innerHTML = `<h4>${esc(dados.t)}</h4><div>${dados.c}</div>`;
+  document.body.appendChild(el);
+
+  // Posiciona abaixo do botão; sobe se não couber. Corrige transbordo lateral.
+  const b = botao.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const margem = 10;
+  let topo = b.bottom + 9, lado = "baixo";
+  if(topo + r.height > innerHeight - margem){ topo = b.top - r.height - 9; lado = "cima"; }
+  let esq = b.left + b.width/2 - r.width/2;
+  esq = Math.max(margem, Math.min(esq, innerWidth - r.width - margem));
+  el.style.top = `${Math.max(margem, topo)}px`;
+  el.style.left = `${esq}px`;
+  el.dataset.lado = lado;
+  // seta apontando para o botão, presa aos limites do balão
+  // A seta acompanha o botão, mas fica presa aos limites do balão para não
+  // "vazar" quando o popover é empurrado pela borda da tela.
+  const seta = Math.max(12, Math.min(b.left + b.width/2 - esq - 4.5, r.width - 21));
+  el.style.setProperty("--seta", `${seta}px`);
+
+  botao.setAttribute("aria-expanded","true");
+  popAberto = { el, botao };
+}
+
+document.addEventListener("click", e => {
+  const botao = e.target.closest?.(".explica");
+  if(botao){ e.stopPropagation(); abrirPop(botao); return; }
+  if(!e.target.closest?.(".pop")) fecharPop();
+});
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape" && popAberto){ const b = popAberto.botao; fecharPop(); b?.focus(); }
+});
+addEventListener("scroll", fecharPop, true);
+addEventListener("resize", fecharPop);
+
+/* ═══════════════════════════════════════════════════════════════
+   Telas
+   ═══════════════════════════════════════════════════════════════ */
+// Acesso TARDIO: o shell só existe depois do login, então capturar o elemento
+// no carregamento do script guarda um null para sempre.
+const view = new Proxy({}, {
+  get: (_, prop) => {
+    const n = el("view");
+    const v = n?.[prop];
+    return typeof v === "function" ? v.bind(n) : v;
+  },
+  set: (_, prop, valor) => { const n = el("view"); if (n) n[prop] = valor; return true; },
+});
+
+function barras(obj, total){
+  const ent = Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  return `<div class="bars">${ent.map(([k,v])=>`
+    <div class="bar-row">
+      <div>
+        <div class="bar-lbl"><span>${esc(titulo(k))}</span><span>${v}</span></div>
+        <div class="track"><div class="fill" style="width:${(v/total*100).toFixed(1)}%"></div></div>
+      </div>
+      <div class="bar-pct">${Math.round(v/total*100)}%</div>
+    </div>`).join("")}</div>`;
+}
+const conta = (arr, f) => arr.reduce((a,x)=>{ const k=f(x); a[k]=(a[k]||0)+1; return a; },{});
+
+/* ── Painel ─────────────────────────────────────────────────── */
+function telaPainel(){
+  const abertos = PUBS.filter(p => p.prazo.restantes >= 0);
+  const crit = abertos.filter(p => p.prazo.restantes <= 3);
+  const sem = PUBS.filter(p => p.status_triagem === "novo");
+  const vencidos = PUBS.filter(p => p.prazo.restantes < 0 && p.status_triagem !== "concluido");
+  const prox = [...abertos].sort((a,b)=>a.prazo.fim.localeCompare(b.prazo.fim)).slice(0,9);
+
+  view.innerHTML = `
+  <div class="kpis">
+    <div class="kpi crit"><div class="k">Prazos em 3 dias</div><div class="v">${crit.length}</div>
+      <div class="d">exigem despacho imediato</div></div>
+    <div class="kpi warn"><div class="k">Sem triagem</div><div class="v">${sem.length}</div>
+      <div class="d">publicações ainda não lidas</div></div>
+    <div class="kpi acc"><div class="k">Processos ativos</div><div class="v">${PROCESSOS.length}</div>
+      <div class="d">com publicação na janela</div></div>
+    <div class="kpi ok"><div class="k">Publicações</div><div class="v">${PUBS.length}</div>
+      <div class="d">últimos 45 dias</div></div>
+    <div class="kpi"><div class="k">Prazos encerrados</div><div class="v">${vencidos.length}</div>
+      <div class="d">verificar se houve providência</div></div>
+  </div>
+
+  <div class="grid2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="card-h"><h3>Vencimentos mais próximos</h3>
+        <span class="hint">art. 183 do CPC aplicado</span></div>
+      <div class="agenda">
+        ${prox.map(p=>`
+        <div class="ag-row" data-goto="${esc(p.id)}">
+          <div><div class="ag-date">${fmtD(p.prazo.fim)}</div>
+            <div class="ag-when">${sevTxt(p.prazo.restantes)}</div></div>
+          <div><div class="cell-num">${esc(p.numero)}</div>
+            <div class="cell-sub">${esc(p.ato)} · ${esc(titulo(p.classe))}</div></div>
+          <span class="pill ${sev(p.prazo.restantes)}">${p.prazo.dias}du${p.prazo.dobro?" ×2":""}</span>
+        </div>`).join("")}
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card">
+        <div class="card-h"><h3>Distribuição por tribunal</h3></div>
+        ${barras(conta(PROCESSOS,p=>p.tribunal), PROCESSOS.length)}
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Posição do Município</h3></div>
+        ${barras(conta(PROCESSOS,p=>p.polo==="passivo"?"Polo passivo (réu)":p.polo==="ativo"?"Polo ativo (autor)":"Não informado"), PROCESSOS.length)}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Matérias que mais consomem o departamento</h3>
+      <span class="hint">por processo, não por publicação</span></div>
+    ${barras(conta(PROCESSOS,p=>p.classe), PROCESSOS.length)}
+  </div>`;
+  view.querySelectorAll("[data-goto]").forEach(r =>
+    r.onclick = () => { sel = r.dataset.goto; location.hash = "#publicacoes"; });
+}
+
+/* ── Publicações (feed bipartido) ───────────────────────────── */
+let sel = null, filtro = { q:"", trib:"", status:"", prazo:"" };
+
+const FAIXA_VISTA = "pradopolis.faixa.v1";
+
+function faixaEducativa(){
+  if(leu(FAIXA_VISTA)) return "";
+  return `<div class="faixa" id="faixa">
+    <span>⚖️</span>
+    <span>Os prazos aqui já consideram o prazo diferenciado do ente público
+      (arts. 183 e 224 do CPC; Decreto-Lei 779/69 no rito trabalhista).
+      <b>Confira sempre no portal do tribunal antes de peticionar</b> — este painel é
+      apoio, não controle oficial de prazo.</span>
+    <button class="fechar" aria-label="Dispensar aviso">×</button>
+  </div>`;
+}
+
+function telaPublicacoes(){
+  view.innerHTML = faixaEducativa() + `
+  <div class="feed">
+    <div class="feed-list">
+      <div class="feed-tools">
+        <input class="feed-search" id="q" placeholder="Buscar por número, parte, órgão ou teor…" value="${esc(filtro.q)}">
+        <div class="chips" id="chips-t"></div>
+        <div class="chips" id="chips-s"></div>
+      </div>
+      <div class="feed-scroll" id="flist"></div>
+    </div>
+    <div class="reader" id="reader"></div>
+  </div>`;
+
+  const tribs = [...new Set(PUBS.map(p=>p.tribunal))].sort();
+  el("chips-t").innerHTML = [["","Todos"],...tribs.map(t=>[t,t])]
+    .map(([v,l])=>`<button class="chip" data-f="trib" data-v="${v}" aria-pressed="${filtro.trib===v}">${l}</button>`).join("");
+  el("chips-s").innerHTML = [["","Tudo"],["novo","Sem triagem"],["andamento","Em análise"],
+    ["concluido","Providenciado"],["__crit","Prazo ≤ 3 dias"]]
+    .map(([v,l])=>{ const on = v==="__crit" ? filtro.prazo==="crit" : filtro.status===v && filtro.prazo!=="crit";
+      return `<button class="chip" data-f="${v==="__crit"?"prazo":"status"}" data-v="${v==="__crit"?"crit":v}" aria-pressed="${on}">${l}</button>`; }).join("");
+
+  view.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+    const f = c.dataset.f, v = c.dataset.v;
+    if(f==="prazo"){ filtro.prazo = filtro.prazo==="crit" ? "" : "crit"; filtro.status=""; }
+    else { filtro[f] = filtro[f]===v ? "" : v; if(f==="status") filtro.prazo=""; }
+    telaPublicacoes();
+  });
+  el("q").oninput = e => { filtro.q = e.target.value; pintaLista(); };
+  el("faixa")?.querySelector(".fechar")?.addEventListener("click", () => {
+    grava(FAIXA_VISTA, "1");
+    el("faixa").remove();
+  });
+  pintaLista(); pintaLeitor();
+}
+
+function filtrados(){
+  const q = semAcento(filtro.q).toLowerCase();
+  return PUBS.filter(p => {
+    if(filtro.trib && p.tribunal !== filtro.trib) return false;
+    if(filtro.status && p.status_triagem !== filtro.status) return false;
+    if(filtro.prazo === "crit" && !(p.prazo.restantes >= 0 && p.prazo.restantes <= 3)) return false;
+    if(!q) return true;
+    return semAcento(`${p.numero} ${p.orgao} ${p.classe} ${p.texto} ${p.partes.map(x=>x.nome).join(" ")}`)
+      .toLowerCase().includes(q);
+  });
+}
+
+function pintaLista(){
+  const lst = filtrados();
+  const box = el("flist");
+  if(!lst.length){
+    // "Nenhum prazo crítico" é boa notícia e precisa soar como tal — não pode
+    // usar o mesmo tom de "sua busca não achou nada".
+    box.innerHTML = filtro.prazo === "crit"
+      ? `<div class="empty bom"><strong>Nenhum prazo crítico</strong>
+           Nada vence nos próximos 3 dias úteis. O dia está sob controle.
+           <button class="btn sm" data-limpar="1">Ver todas as publicações</button></div>`
+      : `<div class="empty"><strong>Nenhuma publicação com esses filtros</strong>
+           Tente outro termo de busca ou remova os filtros ativos.
+           <button class="btn sm" data-limpar="1">Limpar filtros</button></div>`;
+    box.querySelector("[data-limpar]").onclick = () => {
+      filtro = { q:"", trib:"", status:"", prazo:"" };
+      telaPublicacoes();
+    };
+    return;
+  }
+  box.innerHTML = lst.map(p => {
+    const s = p, r = p.prazo.restantes;
+    return `<div class="fitem ${sel===String(p.id)?"sel":""}" data-id="${p.id}">
+      <div class="fitem-top">
+        ${s.status==="novo"?'<span class="unread"></span>':""}
+        <span class="fitem-num">${esc(p.numero)}</span>
+        <span class="tag">${esc(p.tribunal)}</span>
+        <span class="pill ${sev(r)}" style="margin-left:auto">${sevTxt(r)}</span>
+      </div>
+      <div class="fitem-cls">${esc(titulo(p.classe))} · ${esc(p.documento||p.tipo)}</div>
+      <div class="fitem-bot">
+        <span class="mono">${fmtD(p.data)}</span>·<span>${esc(p.ato)}</span>
+        ${s.responsavel_nome?`·<span>${esc(s.responsavel_nome)}</span>`:""}
+      </div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll(".fitem").forEach(n => n.onclick = () => { sel = n.dataset.id; telaPublicacoes(); });
+}
+
+function pintaLeitor(){
+  const box = el("reader");
+  const p = PUBS.find(x => String(x.id) === String(sel));
+  if(!p){ box.innerHTML = `<div class="empty"><strong>Selecione uma publicação</strong>
+    Clique num item da lista à esquerda para ler o inteiro teor, conferir a contagem
+    do prazo e fazer a triagem.</div>`; return; }
+  const s = p, z = p.prazo;
+  const divergente = p.declarado && p.declarado.dias !== z.simples;
+
+  box.innerHTML = `
+  <div class="reader-h">
+    <h2 class="mono">${esc(p.numero)}</h2>
+    <div class="sub" style="color:var(--muted);font-size:12.5px">
+      ${esc(titulo(p.classe))} · ${esc(p.orgao)} · ${esc(p.tribunal)}</div>
+    <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">
+      <span class="pill ${sev(z.restantes)}">Prazo ${sevTxt(z.restantes)}</span>
+      <span class="pill acc">Município no polo ${esc(p.poloEnte)}</span>
+      <span class="pill neutral">${esc(p.documento||p.tipo)}</span>
+      ${z.mult>1 ? `<span class="pill ${z.regra==="quadruplo"?"warn":"info"}">${
+        z.regra==="quadruplo" ? "Prazo quádruplo · DL 779/69"
+        : z.regra==="dobro_clt" ? "Prazo em dobro · DL 779/69"
+        : "Prazo em dobro · art. 183"}</span>` : ""}
+    </div>
+  </div>
+
+  <div class="reader-body">
+    <div class="sect">
+      <div class="sect-t">Contagem do prazo</div>
+      <div class="prazo-box">
+        <div class="prazo-head">
+          <strong style="font-family:var(--slab);font-size:14px">${esc(z.ato)}</strong>
+          <span class="pill neutral">${z.dias} dias úteis</span>
+          ${z.mult>1
+            ? `<span class="pill ${z.regra==="quadruplo"?"warn":"info"}">${z.simples} × ${z.mult}</span>${ajuda(z.regra)}`
+            : `<span class="pill neutral">prazo simples</span>${ajuda(z.regra)}`}
+          <span style="margin-left:auto;font-size:11.5px;color:var(--muted)">rito ${esc(z.rito)}</span>
+        </div>
+        <div class="prazo-grid">
+          <div class="pstep"><div class="pl">Disponibilização</div>
+            <div class="pv">${fmtD(z.disponibilizacao)}</div><div class="pn">no DJEN</div></div>
+          <div class="pstep"><div class="pl">Publicação${ajuda("publicacao")}</div>
+            <div class="pv">${fmtD(z.publicacao)}</div><div class="pn">1º dia útil seguinte<br>art. 224, §2º</div></div>
+          <div class="pstep"><div class="pl">Termo inicial</div>
+            <div class="pv">${fmtD(z.termo)}</div><div class="pn">art. 224, caput</div></div>
+          <div class="pstep"><div class="pl">Vencimento</div>
+            <div class="pv" style="color:var(--${sev(z.restantes)==="crit"?"crit":sev(z.restantes)==="warn"?"warn":"ok"})">${fmtD(z.fim)}</div>
+            <div class="pn">${sevTxt(z.restantes)}</div></div>
+        </div>
+        ${z.obstaculos.length?`<div class="legal"><b>Dias não computados:</b> ${
+          z.obstaculos.map(o=>`${fmtD(o[0])} — ${esc(o[1])}`).join(" · ")}</div>`:""}
+        <div class="legal">${esc(z.fundamento)}</div>
+      </div>
+      ${divergente?`<div class="note"><b>Conferir:</b> o texto da publicação menciona
+        “${esc(p.declarado.trecho)}”, mas a contagem acima usa ${z.simples} dias úteis para
+        ${esc(z.ato)}. Quando o juízo fixa prazo diverso, prevalece o prazo do despacho.</div>`:""}
+      ${z.rito==="trabalhista"?`<div class="note"><b>Rito trabalhista:</b> a contagem em dias úteis
+        segue o art. 775 da CLT e o prazo em dobro do ente público vem do Decreto-Lei 779/69,
+        não do art. 183 do CPC. Confira o prazo no PJe-JT antes de agendar.</div>`:""}
+    </div>
+
+    <div class="sect">
+      <div class="sect-t">Partes</div>
+      <div class="parties">
+        ${p.partes.map(x=>`<div class="party ${ehEnte(x.nome)?"ente":""}">
+          <span class="polo">${POLO[(x.polo||"").toUpperCase()]||"—"}</span>
+          <span>${esc(x.nome)}</span></div>`).join("")}
+      </div>
+    </div>
+
+    ${p.advogados.length?`<div class="sect">
+      <div class="sect-t">Advogados intimados</div>
+      <div class="parties">${p.advogados.map(a=>`<div class="party">
+        <span class="polo">OAB</span><span>${esc(a.nome)}</span>
+        <span class="mono" style="color:var(--muted);font-size:11.5px">${esc(a.oab)}</span></div>`).join("")}</div>
+    </div>`:""}
+
+    <div class="sect">
+      <div class="sect-t">Inteiro teor</div>
+      <div class="teor">${esc(p.texto || "Sem texto disponível nesta comunicação.")}</div>
+      <dl class="kv" style="margin-top:4px">
+        <dt>Meio</dt><dd>${esc(p.meio||"—")}</dd>
+        <dt>Tipo</dt><dd>${esc(p.tipo||"—")} · ${esc(p.documento||"—")}</dd>
+        <dt>Órgão</dt><dd>${esc(p.orgao||"—")}</dd>
+        ${p.link?`<dt>Validação</dt><dd><a href="${esc(p.link)}" target="_blank" rel="noopener"
+          style="color:var(--accent);word-break:break-all">Conferir no sistema do tribunal ↗</a></dd>`:""}
+      </dl>
+    </div>
+
+    <div class="sect">
+      <div class="sect-t">Triagem</div>
+      <div class="triage">
+        ${[["novo","Sem triagem"],["andamento","Em análise"],["concluido","Providenciado"],
+           ["sem_providencia","Sem providência"]].map(([v,l])=>
+          `<button class="btn sm" data-set="${v}" aria-pressed="${s.status_triagem===v}">${l}</button>`).join("")}
+      </div>
+      <div style="display:grid;gap:10px;margin-top:4px">
+        <div class="fld"><label for="nota">Anotação interna</label>
+          <input id="nota" value="${esc(s.anotacao)}" placeholder="providência adotada"></div>
+      </div>
+    </div>
+  </div>`;
+
+  box.querySelectorAll("[data-set]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    if (await salvarTriagem(p, { status_triagem: b.dataset.set })) telaPublicacoes();
+    else b.disabled = false;
+  });
+  const nota = el("nota");
+  if (nota) nota.onchange = async () => {
+    if (await salvarTriagem(p, { anotacao: nota.value })) pintaLista();
+  };
+}
+
+/* ── Prazos ─────────────────────────────────────────────────── */
+function telaPrazos(){
+  const abertos = PUBS.filter(p => p.prazo.restantes >= -14)
+    .sort((a,b)=>a.prazo.fim.localeCompare(b.prazo.fim));
+  view.innerHTML = `
+  <div class="split">
+    <div class="card">
+      <div class="card-h"><h3>Agenda de vencimentos</h3>
+        <span class="hint">${abertos.length} prazos · art. 183 do CPC aplicado ao Município</span></div>
+      <div class="agenda">${abertos.map(p=>{
+        const s = p;
+        return `<div class="ag-row" data-goto="${p.id}">
+          <div><div class="ag-date">${fmtD(p.prazo.fim)}</div>
+            <div class="ag-when">${sevTxt(p.prazo.restantes)}</div></div>
+          <div><div class="cell-num">${esc(p.numero)} <span class="tag">${esc(p.tribunal)}</span></div>
+            <div class="cell-sub">${esc(p.ato)} · ${esc(titulo(p.classe))}${s.responsavel_nome?` · ${esc(s.responsavel_nome)}`:""}</div></div>
+          <div style="display:flex;gap:5px;align-items:center">
+            ${p.prazo.dobro?'<span class="pill info">×2</span>':""}
+            <span class="pill ${sev(p.prazo.restantes)}">${p.prazo.dias}du</span>
+          </div>
+        </div>`;}).join("")}</div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <div class="card-h"><h3>Calculadora de prazo</h3></div>
+        <div class="calc">
+          <div class="fld"><label for="c-data">Disponibilização no DJEN</label>
+            <input type="date" id="c-data" value="${iso(new Date())}"></div>
+          <div class="fld"><label for="c-ato">Ato a praticar</label>
+            <select id="c-ato">${Object.keys(PRAZOS).map(k=>
+              `<option${k==="Contestação"?" selected":""}>${k}</option>`).join("")}</select></div>
+          <div class="fld"><label for="c-rito">Rito</label>
+            <select id="c-rito">
+              <option value="comum">Comum (art. 183 aplica)</option>
+              <option value="jefp">Juizado Especial da Fazenda Pública</option>
+              <option value="trabalhista">Trabalhista</option>
+            </select></div>
+          <div class="fld"><label for="c-faz">Parte</label>
+            <select id="c-faz">
+              <option value="1">Município / Fazenda Pública</option>
+              <option value="0">Particular</option>
+            </select></div>
+          <div class="calc-out" id="c-out"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Feriados locais</h3>
+          <span class="hint">o que o calendário nacional não cobre</span></div>
+        <div style="padding:13px 16px;font-size:12.5px;line-height:1.6;color:var(--ink-2)">
+          Feriados municipais e portarias de suspensão de expediente do foro são
+          configurados no servidor, em <code>JURIDICO_FERIADOS_LOCAIS</code>, e valem
+          para todo o acervo assim que salvos — os prazos são recalculados na leitura.
+          <div class="note" style="margin-top:9px">Mantenha essa lista atualizada.
+            Prazo calculado sobre calendário desatualizado é prazo perdido.</div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>`;
+
+  const rodar = async () => {
+    // Quem calcula é o backend, que delega ao MCP — a tela não duplica a regra.
+    let z;
+    try {
+      z = await api("/acervo/calcular-prazo", { method: "POST", body: JSON.stringify({
+        disponibilizacao: el("c-data").value, ato: el("c-ato").value,
+        rito: el("c-rito").value, fazenda_publica: el("c-faz").value === "1",
+      })});
+    } catch (erro) {
+      el("c-out").innerHTML = `<div style="color:var(--crit);font-size:12.5px">${esc(erro.message)}</div>`;
+      return;
+    }
+    el("c-out").innerHTML = `
+      <div style="font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600">Vencimento</div>
+      <div class="big">${fmtD(z.fim)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">
+        ${z.dias} dias úteis${z.mult>1?` (${z.simples} × ${z.mult})`:""} · publicação em ${fmtD(z.publicacao)} · termo em ${fmtD(z.termo)}</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:9px;line-height:1.5;
+        border-top:1px solid var(--line);padding-top:9px">${esc(z.fundamento)}</div>
+      ${z.obstaculos.length?`<div style="font-size:11.5px;color:var(--muted);margin-top:7px">
+        <b style="color:var(--ink-2)">Não computados:</b> ${z.obstaculos.map(o=>fmtD(o[0])).join(" · ")}</div>`:""}`;
+  };
+  ["c-data","c-ato","c-rito","c-faz"].forEach(i => el(i).onchange = rodar);
+  rodar();
+  view.querySelectorAll("[data-goto]").forEach(r =>
+    r.onclick = () => { sel = r.dataset.goto; location.hash = "#publicacoes"; });
+}
+
+/* ── Carteira ───────────────────────────────────────────────── */
+let cf = { q:"", trib:"", polo:"" };
+const AJUDA_POLO = `<button type="button" class="explica" data-explica="polo"
+  aria-expanded="false" aria-label="Explicação: posição do Município">?</button>`;
+
+function telaCarteira(){
+  const q = semAcento(cf.q).toLowerCase();
+  const lst = PROCESSOS.filter(p =>
+    (!cf.trib || p.tribunal===cf.trib) && (!cf.polo || p.polo===cf.polo) &&
+    (!q || semAcento(`${p.numero} ${p.classe} ${p.orgao} ${p.contra.join(" ")}`).toLowerCase().includes(q)));
+  const tribs = [...new Set(PROCESSOS.map(p=>p.tribunal))].sort();
+
+  view.innerHTML = `
+  <div class="card">
+    <div class="card-h">
+      <h3>Carteira processual</h3>
+      <span class="hint">${lst.length} de ${PROCESSOS.length} processos</span>
+    </div>
+    <div style="padding:11px 14px;border-bottom:1px solid var(--line);display:flex;gap:9px;flex-wrap:wrap">
+      <input class="feed-search" style="max-width:320px" id="cq"
+        placeholder="Buscar número, classe, órgão ou parte contrária…" value="${esc(cf.q)}">
+      <div class="chips">${[["","Todos"],...tribs.map(t=>[t,t])].map(([v,l])=>
+        `<button class="chip" data-f="trib" data-v="${v}" aria-pressed="${cf.trib===v}">${l}</button>`).join("")}</div>
+      <div class="chips">${[["","Ambos os polos"],["passivo","Réu"],["ativo","Autor"]].map(([v,l])=>
+        `<button class="chip" data-f="polo" data-v="${v}" aria-pressed="${cf.polo===v}">${l}</button>`).join("")}</div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Processo</th><th>Classe</th><th>Órgão</th>
+          <th>Polo${AJUDA_POLO}</th>
+          <th>Publicações</th><th>Última</th><th>Próximo prazo</th>
+        </tr></thead>
+        <tbody>${lst.map(p=>`
+          <tr data-num="${esc(p.numero)}">
+            <td><div class="cell-num">${esc(p.numero)}</div>
+              <div class="cell-sub">${esc(p.tribunal)}</div></td>
+            <td>${esc(titulo(p.classe))}</td>
+            <td style="max-width:230px">${esc(p.orgao)}</td>
+            <td><span class="pill ${p.polo==="passivo"?"warn":"acc"}">${esc(p.polo)}</span></td>
+            <td class="num">${p.pubs.length}</td>
+            <td class="cell-num">${fmtD(p.ultima)}</td>
+            <td>${p.proximo?`<span class="pill ${sev(p.proximo.restantes)}">${fmtD(p.proximo.fim)}</span>`
+              :'<span class="pill neutral">sem prazo aberto</span>'}</td>
+          </tr>`).join("")}</tbody>
+      </table>
+    </div>
+  </div>`;
+  el("cq").oninput = e => { cf.q = e.target.value; telaCarteira(); el("cq").focus(); };
+  view.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+    cf[c.dataset.f] = cf[c.dataset.f]===c.dataset.v ? "" : c.dataset.v; telaCarteira(); });
+  view.querySelectorAll("tbody tr").forEach(r =>
+    r.onclick = () => { proc = r.dataset.num; location.hash = "#processo"; });
+}
+
+/* ── Processo ───────────────────────────────────────────────── */
+let proc = null;
+function telaProcesso(){
+  const p = PROCESSOS.find(x => x.numero === proc) || PROCESSOS[0];
+  if(!p){ view.innerHTML = `<div class="empty"><strong>Carteira vazia</strong>
+    Uma <em>varredura</em> é a leitura automática do diário oficial em busca do nome do
+    Município — é ela que descobre os processos e alimenta esta tela.</div>`; return; }
+  proc = p.numero;
+  view.innerHTML = `
+  <div class="stack">
+    <div class="card">
+      <div class="card-h" style="align-items:flex-start;flex-direction:column;gap:7px">
+        <h3 class="mono" style="font-size:16px">${esc(p.numero)}</h3>
+        <div style="font-size:12.5px;color:var(--muted)">${esc(titulo(p.classe))} · ${esc(p.orgao)} · ${esc(p.tribunal)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="pill ${p.polo==="passivo"?"warn":"acc"}">Município no polo ${esc(p.polo)}</span>
+          <span class="pill neutral">${p.pubs.length} publicações</span>
+          ${p.proximo?`<span class="pill ${sev(p.proximo.restantes)}">Próximo prazo ${fmtD(p.proximo.fim)} · ${sevTxt(p.proximo.restantes)}</span>`:""}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0">
+        <div style="padding:14px 16px;border-right:1px solid var(--line)">
+          <div class="sect-t" style="margin-bottom:8px">Partes contrárias</div>
+          <div class="parties">${p.contra.length?p.contra.map(c=>
+            `<div class="party"><span>${esc(c)}</span></div>`).join(""):'<span style="color:var(--muted);font-size:12.5px">—</span>'}</div>
+        </div>
+        <div style="padding:14px 16px">
+          <div class="sect-t" style="margin-bottom:8px">Advogados intimados</div>
+          <div class="parties">${p.advogados.length?p.advogados.map(a=>
+            `<div class="party"><span style="font-size:12.5px">${esc(a)}</span></div>`).join(""):'<span style="color:var(--muted);font-size:12.5px">—</span>'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h3>Linha do tempo das publicações</h3>
+        <span class="hint">clique para abrir o inteiro teor</span></div>
+      <div class="agenda">${p.pubs.map(x=>`
+        <div class="ag-row" data-goto="${x.id}">
+          <div><div class="ag-date">${fmtD(x.data)}</div>
+            <div class="ag-when">${esc(x.tribunal)}</div></div>
+          <div><div style="font-size:13px;font-weight:500">${esc(x.documento||x.tipo)}</div>
+            <div class="cell-sub">${esc((x.texto||"").slice(0,120))}…</div></div>
+          <span class="pill ${sev(x.prazo.restantes)}">${fmtD(x.prazo.fim)}</span>
+        </div>`).join("")}</div>
+    </div>
+  </div>`;
+  view.querySelectorAll("[data-goto]").forEach(r =>
+    r.onclick = () => { sel = r.dataset.goto; location.hash = "#publicacoes"; });
+}
+
+/* ── Fontes e limites ───────────────────────────────────────── */
+function telaFontes(){
+  view.innerHTML = `
+  <div class="grid2">
+    <div class="card">
+      <div class="card-h"><h3>De onde vem cada dado</h3></div>
+      <div style="padding:15px 17px;display:flex;flex-direction:column;gap:14px;font-size:13px;line-height:1.6">
+        <div>
+          <span class="pill acc">DJEN · Comunica</span>
+          <p style="margin:7px 0 0">Feed público de publicações do Diário de Justiça Eletrônico Nacional
+          (Resolução CNJ 455/2022). Sem autenticação. É a <b>única fonte pública que indexa o nome
+          das partes</b> — por isso é ela que descobre a carteira, e não o DataJud.
+          Alimenta: publicações, partes, advogados, inteiro teor, link de validação.</p>
+        </div>
+        <div>
+          <span class="pill acc">DataJud CNJ</span>
+          <p style="margin:7px 0 0">Base unificada do CNJ, 91 tribunais, gratuita.
+          Alimenta: movimentações, classe, órgão julgador, datas.
+          <b>Não indexa partes</b> e tem defasagem de T+1 a T+7 dias.</p>
+        </div>
+        <div>
+          <span class="pill neutral">Cálculo local</span>
+          <p style="margin:7px 0 0">Prazos calculados no próprio servidor MCP, sem chamada externa:
+          art. 219 (dias úteis), 224 §2º (publicação no 1º dia útil seguinte à disponibilização),
+          220 (recesso de 20/12 a 20/01) e 183 (dobro da Fazenda Pública).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <div class="card-h"><h3>O que este painel não faz</h3></div>
+        <div style="padding:15px 17px;display:flex;flex-direction:column;gap:11px;font-size:12.5px;line-height:1.6">
+          <div><b>Não substitui o controle oficial de prazos.</b> O DJEN é feed de publicações,
+            não cadastro de processos: um feito sem publicação na janela não aparece, e a cobertura
+            útil começa em 2024.</div>
+          <div><b>Não lê os autos.</b> Nenhuma das fontes públicas devolve o teor das peças —
+            só o texto da publicação.</div>
+          <div><b>Não enxerga processos em segredo de justiça.</b> São bloqueados na origem.</div>
+          <div><b>Não dispensa a conferência no portal do tribunal</b> antes de qualquer
+            ato processual.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Conformidade</h3></div>
+        <div style="padding:15px 17px;font-size:12.5px;line-height:1.6;color:var(--ink-2)">
+          Ferramenta de apoio ao advogado público. Não constitui consultoria jurídica; a análise e a
+          decisão processual são do procurador habilitado — OAB Recomendação 001/2024 e Resolução
+          CNJ 615/2025. Dados públicos por força da Resolução CNJ 455/2022, tratados na
+          hipótese do art. 7º, II e III da LGPD.
+          <div class="note" style="margin-top:11px">Nesta demonstração os nomes de pessoas naturais
+            foram substituídos por pseudônimos. Os números de processo, órgãos e classes são reais.</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Tour guiado — Ciclo 2
+   Escrito à mão de propósito: o painel é um arquivo único que abre
+   offline com duplo clique, e não pode depender de CDN.
+   ═══════════════════════════════════════════════════════════════ */
+const TOUR = [
+  { tela:"painel", alvo:".kpis",
+    t:"Comece o dia aqui",
+    c:"Estes dois primeiros números respondem se o dia está sob controle: <b>prazos vencendo em 3 dias</b> e <b>publicações que ninguém leu ainda</b>." },
+  { tela:"publicacoes", alvo:".feed-list",
+    t:"Sua fila de triagem",
+    c:"A bolinha verde marca o que ainda não foi lido. A etiqueta colorida à direita é o prazo — <b>vermelha até 3 dias</b>." },
+  { tela:"publicacoes", alvo:".prazo-box", precisaSelecao:true,
+    t:"A memória de cálculo",
+    c:"Quatro marcos, do diário até o vencimento, com o artigo que justifica cada salto. O <b>?</b> ao lado de cada um explica a regra." },
+  { tela:"publicacoes", alvo:".teor", precisaSelecao:true,
+    t:"O texto integral",
+    c:"O inteiro teor da publicação, de onde sai o ato e o prazo. <b>Sempre</b> confira no link do tribunal antes de peticionar." },
+  { tela:"publicacoes", alvo:".triage", precisaSelecao:true,
+    t:"Triagem",
+    c:"Classifique e atribua um responsável. É isso que faz o resto da equipe saber o que já foi tratado." },
+  { tela:"prazos", alvo:".agenda",
+    t:"Agenda e acervo",
+    c:"A agenda de vencimentos e, na <b>Carteira</b>, o acervo completo — é daqui que sai o relatório semanal." }
+];
+
+const TOUR_VISTO = "pradopolis.tour.v1";
+let tourPasso = -1, tourNos = null;
+
+const leu = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+const grava = (k,v) => { try { localStorage.setItem(k,v); } catch(e){} };
+
+function tourFechar(){
+  tourNos?.mask?.remove(); tourNos?.hole?.remove(); tourNos?.balao?.remove();
+  tourNos = null; tourPasso = -1;
+  document.removeEventListener("keydown", tourTeclado);
+  document.body.style.removeProperty("overflow");
+}
+
+function tourTeclado(e){
+  if(e.key === "Escape"){ e.preventDefault(); tourFechar(); }
+  else if(e.key === "ArrowRight"){ e.preventDefault(); tourIr(tourPasso+1); }
+  else if(e.key === "ArrowLeft"){ e.preventDefault(); tourIr(tourPasso-1); }
+}
+
+async function tourIr(i){
+  if(i < 0) return;
+  if(i >= TOUR.length){ grava(TOUR_VISTO,"1"); tourFechar(); return; }
+  const passo = TOUR[i];
+  tourPasso = i;
+
+  // Leva à tela do passo e, quando o passo mostra o painel de leitura,
+  // garante que há uma publicação selecionada.
+  if(location.hash.slice(1) !== passo.tela){ location.hash = "#"+passo.tela; await espera(360); }
+  if(passo.precisaSelecao && !sel){
+    const primeira = PUBS.find(p => p.prazo);
+    if(primeira){ sel = String(primeira.id); telaPublicacoes(); await espera(320); }
+  }
+
+  const alvo = document.querySelector(passo.alvo);
+  if(!alvo){ return tourIr(i+1); }          // alvo ausente: não trava o tour
+  alvo.scrollIntoView({ block:"center", behavior: reduzido() ? "auto" : "smooth" });
+  await espera(reduzido() ? 40 : 320);
+  tourDesenhar(alvo, passo, i);
+}
+
+const espera = ms => new Promise(r => setTimeout(r, ms));
+const reduzido = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function tourDesenhar(alvo, passo, i){
+  if(!tourNos){
+    const mask = document.createElement("div"); mask.className = "tour-mask";
+    mask.addEventListener("click", tourFechar);
+    const hole = document.createElement("div"); hole.className = "tour-hole";
+    const balao = document.createElement("div"); balao.className = "tour-balao";
+    balao.setAttribute("role","dialog"); balao.setAttribute("aria-modal","true");
+    balao.setAttribute("aria-live","polite");
+    document.body.append(mask, hole, balao);
+    tourNos = { mask, hole, balao };
+    document.addEventListener("keydown", tourTeclado);
+  }
+  const { hole, balao } = tourNos;
+  const b = alvo.getBoundingClientRect(), pad = 6;
+  Object.assign(hole.style, {
+    top:`${b.top-pad}px`, left:`${b.left-pad}px`,
+    width:`${b.width+pad*2}px`, height:`${b.height+pad*2}px`
+  });
+
+  balao.innerHTML = `
+    <h3>${esc(passo.t)}</h3>
+    <p>${passo.c}</p>
+    <div class="tour-rodape">
+      <span class="tour-passos">${i+1} de ${TOUR.length}</span>
+      <button class="btn sm" data-tour="sair">Sair</button>
+      ${i>0?`<button class="btn sm" data-tour="voltar">Voltar</button>`:""}
+      <button class="btn sm pri" data-tour="proximo">${i===TOUR.length-1?"Concluir":"Próximo"}</button>
+    </div>`;
+
+  // Posiciona o balão do lado com mais espaço, sem sair da tela.
+  const lg = 360, margem = 14;
+  let topo = b.bottom + 14;
+  if(topo + 190 > innerHeight) topo = Math.max(margem, b.top - 190);
+  let esq = Math.min(Math.max(margem, b.left), innerWidth - lg - margem);
+  Object.assign(balao.style, { top:`${topo}px`, left:`${esq}px` });
+
+  balao.querySelector('[data-tour="proximo"]').onclick = () => tourIr(i+1);
+  balao.querySelector('[data-tour="sair"]').onclick = tourFechar;
+  balao.querySelector('[data-tour="voltar"]')?.addEventListener("click", () => tourIr(i-1));
+  balao.querySelector('[data-tour="proximo"]').focus();
+}
+
+function tourConvite(){
+  const cx = document.createElement("div");
+  cx.className = "tour-inicio";
+  cx.innerHTML = `<div class="cx" role="dialog" aria-modal="true" aria-label="Tour do painel">
+    <h3>Primeira vez por aqui?</h3>
+    <p>Um tour de 1 minuto mostra como o painel é usado no dia a dia do departamento.</p>
+    <div class="acoes">
+      <button class="btn" data-c="nao">Agora não</button>
+      <button class="btn pri" data-c="sim">Fazer o tour</button>
+    </div></div>`;
+  document.body.appendChild(cx);
+  const fim = () => { grava(TOUR_VISTO,"1"); cx.remove(); };
+  cx.querySelector('[data-c="nao"]').onclick = fim;
+  cx.querySelector('[data-c="sim"]').onclick = () => { cx.remove(); tourIr(0); };
+  cx.querySelector('[data-c="sim"]').focus();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Roteamento
+   ═══════════════════════════════════════════════════════════════ */
+const TELAS = {
+  painel:      [telaPainel,      "Painel",       "Situação do acervo nos últimos 45 dias"],
+  publicacoes: [telaPublicacoes, "Publicações",  "Feed do DJEN com inteiro teor e contagem de prazo"],
+  prazos:      [telaPrazos,      "Prazos",       "Agenda de vencimentos e calculadora processual"],
+  carteira:    [telaCarteira,    "Carteira",     "Processos do Município descobertos por nome da parte"],
+  processo:    [telaProcesso,    "Processo",     "Histórico de publicações de um feito"],
+  fontes:      [telaFontes,      "Fontes e limites", "O que cada fonte entrega e o que ela não entrega"]
+};
+function rota(){
+  const k = (location.hash.slice(1) || "painel");
+  const [fn, t, s] = TELAS[k] || TELAS.painel;
+  el("vtitle").textContent = t; el("vsub").textContent = s;
+  document.querySelectorAll(".nav a").forEach(a => a.classList.toggle("on", a.dataset.v === k));
+  fn();
+  view.scrollTop = 0;
+}
+
+/** Contadores do rail. Chamado após o shell existir e o acervo carregar. */
+function atualizarContadores(){
+  el("t-car").textContent = PROCESSOS.length || "";
+  el("t-pub").textContent = ESTATISTICAS.sem_triagem || "";
+  el("t-prz").textContent =
+    PUBS.filter(p => p.prazo.restantes >= 0 && p.prazo.restantes <= 7).length || "";
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Arranque
+   ═══════════════════════════════════════════════════════════════ */
+async function iniciar(){
+  if(!sessao?.access_token){ telaLogin(); return; }
+  document.body.innerHTML = SHELL;
+
+  try {
+    USUARIO = sessao.usuario ?? await api("/auth/eu");
+    await carregarAcervo();
+  } catch (erro) {
+    if(String(erro.message).includes("Sessão")) return;   // sair() já recarregou
+    document.getElementById("view").innerHTML =
+      `<div class="empty"><strong>Não foi possível carregar o acervo</strong>
+       ${esc(erro.message)}
+       <button class="btn sm" onclick="location.reload()">Tentar de novo</button></div>`;
+    return;
+  }
+
+  el("quem").innerHTML =
+    `${esc(USUARIO.nome)} <span class="papel">${esc(USUARIO.papel)}</span>`;
+  el("sair").onclick = sair;
+  el("tour").onclick = () => tourIr(0);
+  if(!leu(TOUR_VISTO)) setTimeout(tourConvite, 700);
+
+  // Varredura manual é de chefe e procurador; para os demais o botão nem aparece.
+  const bv = el("varrer");
+  if(!["chefe","procurador"].includes(USUARIO.papel)) bv.remove();
+  else bv.onclick = async () => {
+    bv.disabled = true; bv.textContent = "Varrendo…";
+    try {
+      const r = await dispararVarredura();
+      await carregarAcervo();
+      atualizarContadores();
+      rota();
+      alert(`Varredura concluída.\n\n${r.processos} processos`
+        + `\n${r.publicacoes_novas} publicações novas`
+        + `\n${r.descartadas_por_homonimia} descartadas por homonímia`
+        + `\n${r.atribuidas_por_oab} atribuídas por OAB`);
+    } catch (erro) {
+      alert(`Falha na varredura: ${erro.message}`);
+    } finally {
+      bv.disabled = false; bv.textContent = "Varrer o diário";
+    }
+  };
+
+  el("theme").onclick = () => {
+    const atual = document.documentElement.getAttribute("data-theme");
+    const escuro = atual ? atual === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", escuro ? "light" : "dark");
+  };
+
+  el("sweep-t").textContent = "atualizado " + new Date().toLocaleString("pt-BR",
+    { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+
+  atualizarContadores();
+  addEventListener("hashchange", rota);
+  rota();
+}
+
+iniciar();
+
+</script>
+</body>
+</html>

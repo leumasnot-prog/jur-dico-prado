@@ -1,0 +1,27 @@
+# Deploy no Render (https://render.com) — plano gratuito serve para começar.
+# O banco é o Neon, externo: assim o acervo sobrevive a qualquer redeploy.
+services:
+  - type: web
+    name: painel-juridico-pradopolis
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      # Cole a connection string do Neon. Precisa de ?sslmode=require
+      # e do driver asyncpg: postgresql+asyncpg://...
+      - key: DATABASE_URL
+        sync: false
+      # Gere com: python -c "import secrets; print(secrets.token_urlsafe(48))"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JURIDICO_NOME_PARTE
+        value: PRADOPOLIS
+      - key: JURIDICO_TERMOS_CONFIRMACAO
+        value: MUNICIPIO,PREFEITURA
+      - key: JURIDICO_UF
+        value: SP
+      - key: VARREDURA_ATIVA
+        value: "true"
+      - key: VARREDURA_HORA
+        value: "06:00"
