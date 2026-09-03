@@ -103,15 +103,34 @@ async def diagnostico(sessao: Annotated[AsyncSession, Depends(get_session)]) -> 
     except Exception as exc:
         saida["banco"] = f"{type(exc).__name__}: {exc}"[:200]
 
-    try:
-        import httpx
+    # O DJEN e sondado DUAS VEZES, com cabecalhos diferentes. Um 403 sozinho
+    # nao diz se o bloqueio e do IP (datacenter) ou do User-Agent (WAF barrando
+    # cliente de script), e a diferenca decide a correcao: cabecalho se resolve
+    # numa linha, IP exige varrer de outro lugar.
+    import httpx
 
-        async with httpx.AsyncClient(timeout=30.0) as c:
-            r = await c.get("https://comunicaapi.pje.jus.br/api/v1/comunicacao",
-                            params={"numeroOab": "274238", "ufOab": "SP", "itensPorPagina": 1})
-        saida["djen"] = f"HTTP {r.status_code}"
-    except Exception as exc:
-        saida["djen"] = f"{type(exc).__name__}: {exc}"[:200]
+    ua_navegador = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/131.0 Safari/537.36")
+    sondas = {
+        "djen": None,  # cabecalho padrao do httpx
+        "djen_com_user_agent": {"User-Agent": ua_navegador, "Accept": "application/json",
+                                "Accept-Language": "pt-BR,pt;q=0.9"},
+    }
+    for rotulo, cabecalhos in sondas.items():
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as c:
+                r = await c.get("https://comunicaapi.pje.jus.br/api/v1/comunicacao",
+                                params={"numeroOab": "274238", "ufOab": "SP",
+                                        "itensPorPagina": 1},
+                                headers=cabecalhos)
+            nota = f"HTTP {r.status_code}"
+            if r.status_code != 200:
+                servidor = r.headers.get("server", "?")
+                corpo = r.text[:120].replace("\n", " ")
+                nota += f" · server={servidor} · {corpo}"
+            saida[rotulo] = nota
+        except Exception as exc:
+            saida[rotulo] = f"{type(exc).__name__}: {exc}"[:200]
 
     if settings.telegram_bot_token:
         from app.hermes.telegram import ClienteTelegram, TelegramErro

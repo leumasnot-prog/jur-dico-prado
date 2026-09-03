@@ -152,6 +152,7 @@ async def test_diagnostico_diz_o_que_alcanca(cliente, cron_config, monkeypatch):
     corpo = r.json()
     assert corpo["banco"] == "ok"          # o banco de teste responde
     assert "OSError" in corpo["djen"]      # o DJEN, nao
+    assert "OSError" in corpo["djen_com_user_agent"]
     assert corpo["telegram"] == "sem token configurado"
 
 
