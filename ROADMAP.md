@@ -79,6 +79,45 @@ HTTPS em URL pública; em `localhost` o Telegram não entrega. Ver `backend/DEPL
 
 ---
 
+## ⚠️ Bloqueio conhecido: o DJEN recusa datacenter estrangeiro
+
+Descoberto em 03/09/2026, no primeiro deploy em produção (Render, região EUA).
+
+| Origem | DJEN responde |
+|---|---|
+| Máquina local (Brasil) | ✅ 200 — 337 comunicações |
+| Render (EUA) | ❌ **403 · server=CloudFront** |
+
+Testado com e sem `User-Agent` de navegador: **o 403 é idêntico**, logo o bloqueio
+é do IP, não do cabeçalho. Nenhum ajuste de cliente resolve.
+
+**O que continua funcionando no Render:** tudo, menos a varredura. O painel, o
+login, a agenda, os relatórios e o Hermes (resumo e alertas) só dependem do banco
+e do Telegram, e ambos respondem — confirmado por `GET /cron/diagnostico`.
+
+**Saídas possíveis, em ordem de preferência:**
+
+1. **Hospedar no Brasil.** Resolve na origem. Render não tem região brasileira;
+   Fly.io tem `gru` (São Paulo), e provedores nacionais também servem — o mesmo
+   `Dockerfile` roda em qualquer um.
+2. **Varrer da rede da Prefeitura.** Uma máquina do Departamento roda a varredura
+   e envia o resultado ao serviço. É o acesso mais legítimo possível: o próprio
+   ente consultando as publicações dele, do IP dele.
+3. **Acionar do GitHub Actions**, se o runner passar — a testar com o workflow
+   `diagnostico-djen.yml`, que roda à mão e responde essa pergunta em um minuto.
+
+Enquanto não se decide, a varredura pode ser disparada da máquina local:
+
+```bash
+cd backend && DATABASE_URL="<string do Neon>" uv run python -c "
+import asyncio
+from app.core.db import get_sessionmaker
+from app.services.acervo import varrer_e_persistir
+async def m():
+    async with get_sessionmaker()() as s: print(await varrer_e_persistir(s))
+asyncio.run(m())"
+```
+
 ## Pendências de código (refinamentos)
 
 1. **DL 779/69 no painel fiscal** (`painel-fiscal-pradopolis-main/backend/app/juridico/prazo.py`) — alinhar o cálculo do rito trabalhista no painel fiscal com a regra já ajustada no MCP.

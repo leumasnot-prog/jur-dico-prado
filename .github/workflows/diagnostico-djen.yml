@@ -1,0 +1,42 @@
+name: O DJEN responde a partir do GitHub?
+
+# Experimento de uma pergunta só, para rodar à mão.
+#
+# O CloudFront do CNJ devolve 403 para o Render (nos EUA), com ou sem
+# User-Agent de navegador — então o bloqueio é do IP, não do cabeçalho. Resta
+# saber se ele barra QUALQUER datacenter ou só aquela faixa. Se o runner do
+# GitHub passar, a varredura pode sair daqui; se não passar, a conclusão é que
+# o acesso precisa vir de dentro do Brasil.
+#
+# Não usa segredo nenhum: só consulta o feed público.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  sondar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: De onde esta máquina está saindo
+        run: |
+          curl --silent --max-time 20 https://ipinfo.io/json || echo "(ipinfo indisponível)"
+
+      - name: Consultar o DJEN
+        run: |
+          echo "--- cabeçalho padrão ---"
+          curl --silent --max-time 40 -o corpo.txt -w "HTTP %{http_code}\n" \
+            "https://comunicaapi.pje.jus.br/api/v1/comunicacao?numeroOab=274238&ufOab=SP&itensPorPagina=1"
+          head -c 300 corpo.txt; echo
+
+          echo "--- com User-Agent de navegador ---"
+          curl --silent --max-time 40 -o corpo2.txt -w "HTTP %{http_code}\n" \
+            -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36" \
+            -H "Accept: application/json" \
+            "https://comunicaapi.pje.jus.br/api/v1/comunicacao?numeroOab=274238&ufOab=SP&itensPorPagina=1"
+          head -c 300 corpo2.txt; echo
+
+      - name: Leitura do resultado
+        run: |
+          echo "HTTP 200 → a varredura pode ser acionada a partir do GitHub Actions."
+          echo "HTTP 403 → o CNJ barra datacenter estrangeiro; o acesso precisa"
+          echo "           partir de dentro do Brasil (host no país ou a rede da Prefeitura)."
