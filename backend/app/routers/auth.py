@@ -140,3 +140,63 @@ async def criar(
     await sessao.commit()
     await sessao.refresh(usuario, ["oabs"])
     return _saida(usuario)
+
+
+class TrocaSenhaIn(BaseModel):
+    senha_atual: str
+    senha_nova: str = Field(min_length=10, description="Mínimo de 10 caracteres.")
+
+
+@router.post("/senha", summary="Troca a própria senha")
+async def trocar_senha(
+    corpo: TrocaSenhaIn,
+    usuario: Annotated[Usuario, Depends(usuario_atual)],
+    sessao: Annotated[AsyncSession, Depends(get_session)],
+    request: Request,
+) -> dict[str, str]:
+    """Exige a senha atual: sem isso, uma sessão esquecida aberta num
+    computador compartilhado permitiria trancar o dono para fora da conta.
+
+    A auditoria registra a troca, nunca a senha — nem a antiga nem a nova.
+    """
+    if not conferir_senha(corpo.senha_atual, usuario.senha_hash):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Senha atual incorreta.")
+    if corpo.senha_nova == corpo.senha_atual:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            "A senha nova precisa ser diferente da atual.")
+
+    usuario.senha_hash = hash_senha(corpo.senha_nova)
+    await registrar(sessao, acao="senha_trocada", usuario_id=usuario.id,
+                    entidade="usuario", entidade_id=str(usuario.id), request=request)
+    await sessao.commit()
+    return {"situacao": "senha alterada"}
+
+
+class RedefinirSenhaIn(BaseModel):
+    senha_nova: str = Field(min_length=10)
+
+
+@router.post("/usuarios/{usuario_id}/senha", summary="Redefine a senha de alguém (chefia)")
+async def redefinir_senha(
+    usuario_id: int, corpo: RedefinirSenhaIn,
+    chefe: Annotated[Usuario, Depends(requer_papel(*PODE_GERIR_USUARIOS))],
+    sessao: Annotated[AsyncSession, Depends(get_session)],
+    request: Request,
+) -> dict[str, str]:
+    """Saída para senha esquecida. Não há recuperação por e-mail neste
+    serviço, e sem isto uma conta esquecida ficaria inutilizável para sempre.
+
+    O poder é real — a chefia pode passar a entrar como a pessoa — por isso
+    fica registrado na trilha com quem redefiniu e para quem. Quem recebe a
+    senha provisória deve trocá-la em /auth/senha no primeiro acesso.
+    """
+    alvo = await sessao.get(Usuario, usuario_id)
+    if alvo is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuário não encontrado.")
+
+    alvo.senha_hash = hash_senha(corpo.senha_nova)
+    await registrar(sessao, acao="senha_redefinida_pela_chefia", usuario_id=chefe.id,
+                    entidade="usuario", entidade_id=str(usuario_id),
+                    detalhe={"alvo": alvo.email}, request=request)
+    await sessao.commit()
+    return {"situacao": f"senha de {alvo.nome} redefinida"}

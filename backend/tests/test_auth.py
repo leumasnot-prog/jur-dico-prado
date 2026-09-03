@@ -111,3 +111,82 @@ async def test_senha_nunca_aparece_em_repr(usuarios):
     u = usuarios["chefe"]
     assert "senha_hash" not in repr(u)
     assert u.senha_hash not in repr(u)
+
+
+# ── Ciclo de vida da senha ────────────────────────────────────────────────
+
+async def test_troca_de_senha_exige_a_senha_atual(cliente, token, usuarios):
+    cab = {"Authorization": f"Bearer {await token('procurador')}"}
+    r = await cliente.post("/auth/senha", headers=cab,
+                           json={"senha_atual": "chute-errado",
+                                 "senha_nova": "nova-senha-bem-longa"})
+    assert r.status_code == 403
+
+
+async def test_troca_de_senha_funciona_e_a_antiga_para_de_valer(cliente, token, usuarios):
+    cab = {"Authorization": f"Bearer {await token('procurador')}"}
+    r = await cliente.post("/auth/senha", headers=cab,
+                           json={"senha_atual": "senha-de-teste-longa",
+                                 "senha_nova": "outra-senha-bem-longa"})
+    assert r.status_code == 200
+
+    antiga = await cliente.post("/auth/login", data={"username": "procurador@t.gov.br",
+                                                    "password": "senha-de-teste-longa"})
+    assert antiga.status_code == 401
+    nova = await cliente.post("/auth/login", data={"username": "procurador@t.gov.br",
+                                                  "password": "outra-senha-bem-longa"})
+    assert nova.status_code == 200
+
+
+async def test_senha_nova_precisa_ser_diferente(cliente, token, usuarios):
+    cab = {"Authorization": f"Bearer {await token('procurador')}"}
+    r = await cliente.post("/auth/senha", headers=cab,
+                           json={"senha_atual": "senha-de-teste-longa",
+                                 "senha_nova": "senha-de-teste-longa"})
+    assert r.status_code == 400
+
+
+async def test_senha_curta_e_recusada(cliente, token, usuarios):
+    cab = {"Authorization": f"Bearer {await token('procurador')}"}
+    r = await cliente.post("/auth/senha", headers=cab,
+                           json={"senha_atual": "senha-de-teste-longa", "senha_nova": "curta"})
+    assert r.status_code == 422
+
+
+async def test_so_a_chefia_redefine_senha_de_terceiro(cliente, token, usuarios):
+    alvo = usuarios["procurador"].id
+    cab = {"Authorization": f"Bearer {await token('procurador')}"}
+    r = await cliente.post(f"/auth/usuarios/{alvo}/senha", headers=cab,
+                           json={"senha_nova": "provisoria-longa-123"})
+    assert r.status_code == 403
+
+
+async def test_chefia_redefine_e_a_troca_fica_auditada(cliente, token, sessao, usuarios):
+    from sqlalchemy import select
+
+    from app.models import Auditoria
+
+    alvo = usuarios["procurador"]
+    cab = {"Authorization": f"Bearer {await token('chefe')}"}
+    r = await cliente.post(f"/auth/usuarios/{alvo.id}/senha", headers=cab,
+                           json={"senha_nova": "provisoria-longa-123"})
+    assert r.status_code == 200
+
+    entrou = await cliente.post("/auth/login", data={"username": "procurador@t.gov.br",
+                                                    "password": "provisoria-longa-123"})
+    assert entrou.status_code == 200
+
+    aud = (await sessao.execute(select(Auditoria).where(
+        Auditoria.acao == "senha_redefinida_pela_chefia"))).scalars().all()
+    assert len(aud) == 1
+    assert aud[0].usuario_id == usuarios["chefe"].id
+    assert aud[0].entidade_id == str(alvo.id)
+    # A senha NUNCA entra na trilha — nem a antiga, nem a nova.
+    assert "provisoria" not in str(aud[0].detalhe)
+
+
+async def test_redefinir_senha_de_inexistente_e_404(cliente, token, usuarios):
+    cab = {"Authorization": f"Bearer {await token('chefe')}"}
+    r = await cliente.post("/auth/usuarios/9999/senha", headers=cab,
+                           json={"senha_nova": "provisoria-longa-123"})
+    assert r.status_code == 404
